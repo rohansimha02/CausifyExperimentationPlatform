@@ -35,7 +35,7 @@ def run_t_test(data_path=DATA_PATH):
         equal_var=False
     )
 
-    print("\ T-Test Results:")
+    print("T-Test Results:")
     print(f"T-statistic: {t_stat:.4f}")
     print(f"P-value:     {p_val:.4f}")
 

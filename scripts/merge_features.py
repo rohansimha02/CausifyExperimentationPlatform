@@ -1,5 +1,3 @@
-# scripts/merge_features.py
-
 """
 This script merges the user-level session features with the cleaned user dataset.
 The output is a single flat file containing all user attributes + behavioral features,
@@ -20,14 +18,13 @@ def merge_user_features(user_path=CLEAN_USERS_PATH, session_path=SESSION_FEATURE
     users = pd.read_csv(user_path)
     sessions = pd.read_csv(session_path)
 
-    print("Merging on user_id (inner join)...")
-    # user_id was dropped in preprocessing — we now re-load with it from original dataset
-    original_users = pd.read_csv("./data/train_users_2.csv", usecols=["id"])
-    original_users.reset_index(drop=True, inplace=True)
-    users.reset_index(drop=True, inplace=True)
-    users_with_id = pd.concat([original_users, users], axis=1)
+    if "id" not in users.columns:
+        raise ValueError("Column 'id' is missing from cleaned users file.")
+    if "user_id" not in sessions.columns:
+        raise ValueError("Column 'user_id' is missing from session features file.")
 
-    merged = users_with_id.merge(sessions, how="inner", left_on="id", right_on="user_id")
+    print("Merging on user_id (inner join)...")
+    merged = users.merge(sessions, how="inner", left_on="id", right_on="user_id")
 
     # Drop extra user_id column
     merged.drop(columns=["user_id"], inplace=True)

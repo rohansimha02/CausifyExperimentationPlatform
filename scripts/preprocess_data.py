@@ -1,5 +1,3 @@
-# scripts/preprocess_data.py
-
 """
 This script loads and cleans the Airbnb Kaggle user dataset,
 creates a binary booking outcome, and simulates a randomized treatment group.
@@ -20,26 +18,27 @@ def preprocess_airbnb_data(input_path=RAW_DATA_PATH, output_path=OUTPUT_DATA_PAT
     print("Loading data...")
     df = pd.read_csv(input_path)
 
-    # Drop ID and known leakage columns
-    df.drop(columns=["id", "date_first_booking"], inplace=True)
+    # Drop known leakage columns, but keep 'id'
+    df.drop(columns=["date_first_booking"], inplace=True)
 
     # Create binary booking outcome (1 = made a booking, 0 = NDF = no booking)
     df["booking"] = (df["country_destination"] != "NDF").astype(int)
 
     # Simulate a randomized treatment assignment (50% of users)
     np.random.seed(seed)
-    df["treatment"] = np.random.binomial(n=1, p=0.5, size=len(df))
+    df["treatment"] = (df["signup_app"] == "iOS").astype(int)
 
     # Filter for valid entries (e.g., gender != unknown, reasonable age)
     df = df[(df["gender"] != "-unknown-") & (df["age"].between(15, 90))]
 
-    # Select relevant columns
+    # Select relevant columns (including 'id' for downstream merge)
     keep_cols = [
-        "signup_method", "gender", "age", "language", "affiliate_channel",
+        "id", "signup_method", "gender", "age", "language", "affiliate_channel",
         "affiliate_provider", "signup_app", "first_device_type", "first_browser",
         "booking", "treatment"
     ]
-    df_clean = df[keep_cols].copy()
+    df_clean = df.loc[:, ~df.columns.duplicated()]
+    df_clean = df_clean[keep_cols]
 
     # Save cleaned file
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
