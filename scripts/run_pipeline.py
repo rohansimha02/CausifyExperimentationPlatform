@@ -20,8 +20,8 @@ STAGES = [
     ("Generating session features", "session_features.py"),
     ("Merging user and session data", "merge_features.py"),
     ("Running hypothesis test (t-test)", "hypothesis_testing.py"),
-    ("Running CUPED adjustment", "cuped_adjustment.py"),
-    ("Running Propensity Score Matching", "causal_inference.py"),
+    ("Running CUPED adjustment (using unique_actions)", "cuped_adjustment.py"),
+    ("Running Propensity Score Matching (on booking_cuped)", "causal_inference.py"),
     ("Running uplift modeling", "uplift_modeling.py")
 ]
 

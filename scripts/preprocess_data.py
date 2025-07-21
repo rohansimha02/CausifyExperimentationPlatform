@@ -43,7 +43,7 @@ def preprocess_airbnb_data(input_path=RAW_DATA_PATH, output_path=OUTPUT_DATA_PAT
     # Save cleaned file
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df_clean.to_csv(output_path, index=False)
-    print(f"✅ Cleaned data saved to {output_path}. Shape: {df_clean.shape}")
+    print(f"Cleaned data saved to {output_path}. Shape: {df_clean.shape}")
 
 
 if __name__ == "__main__":

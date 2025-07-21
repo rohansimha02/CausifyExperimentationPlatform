@@ -6,10 +6,12 @@ heterogeneous treatment effects (HTE) — i.e., which users benefit most from tr
 """
 
 import pandas as pd
-from causalml.inference.meta import XLearner
+from causalml.inference.meta import BaseXRegressor
 from causalml.propensity import compute_propensity_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
 
 MERGED_DATA_PATH = "../data/merged_users.csv"
 
@@ -35,12 +37,26 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
 
     # Compute propensity scores (optional but helps for XLearner)
     print("Estimating propensity scores...")
-    p = compute_propensity_score(X_scaled, treatment, model=LogisticRegression())
+    ps_model = LogisticRegression()
+    ps_model.fit(X_scaled, treatment)
+    p = ps_model.predict_proba(X_scaled)[:, 1]
+
 
     # Train X-Learner
-    print("Training X-Learner uplift model...")
-    x_learner = XLearner(models=RandomForestClassifier(n_estimators=100), propensity_model=None)
+    print("Training BaseXRegressor uplift model...")
+    x_learner = BaseXRegressor(
+    learner=RandomForestClassifier(n_estimators=100),
+    control_name=0,
+)
+
+    # Patch required attribute manually to avoid internal error
+    x_learner.propensity_model = {
+        0: ps_model,
+        1: ps_model
+    }
+
     x_learner.fit(X_scaled, treatment, y, p)
+
 
     # Estimate treatment effect per user
     te = x_learner.predict(X_scaled)
