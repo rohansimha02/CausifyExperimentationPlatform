@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
 # ----------------------------
 # Load Data
 # ----------------------------
 @st.cache_data
+
 def load_data():
     df = pd.read_csv("./data/uplift_scores.csv")
     return df
@@ -18,122 +19,127 @@ df = load_data()
 # Page Config
 # ----------------------------
 st.set_page_config(page_title="Causify Dashboard", layout="wide")
-sns.set_style("whitegrid")
 
 # ----------------------------
 # Sidebar
 # ----------------------------
 with st.sidebar:
-    st.title("🌐 Dashboard Filters")
+    st.title("\U0001F310 Dashboard Filters")
     treatment_group = st.radio("Filter by Treatment Group", ["All", "Treated", "Control"])
     segment_feature = st.selectbox("Segment Feature", ["age", "total_actions", "unique_actions", "total_secs_elapsed"])
+    age_range = st.slider("Filter by Age Range", int(df["age"].min()), int(df["age"].max()), (18, 80))
+    action_range = st.slider("Filter by Total Actions", int(df["total_actions"].min()), int(df["total_actions"].max()), (0, 200))
     st.markdown("---")
-    st.caption("Built with Streamlit, CausalML, and Matplotlib")
+    st.caption("Built with Streamlit, Plotly, and CausalML")
 
 if treatment_group == "Treated":
     df = df[df["treatment"] == 1]
 elif treatment_group == "Control":
     df = df[df["treatment"] == 0]
 
+# Filter by sliders
+df = df[(df["age"].between(age_range[0], age_range[1])) & (df["total_actions"].between(action_range[0], action_range[1]))]
+
 # ----------------------------
-# Title
+# Header
 # ----------------------------
-st.title("📊 Causify: A/B Test + Causal Inference Dashboard")
+st.title("\U0001F4CA Causify: A/B Test + Causal Inference Dashboard")
 st.markdown("""
 Welcome to **Causify**, a dashboard for interpreting A/B test and uplift modeling results from a simulated Airbnb experiment.
 
-We explore:
-- 🎯 **Average treatment effects** (ATE)
-- 📉 **CUPED**-adjusted outcomes
-- 🔄 **Heterogeneous treatment effects** (HTE) via uplift modeling
+Explore:
+- \U0001F3AF **Average treatment effects** (ATE)
+- \U0001F4C9 **CUPED**-adjusted outcomes
+- \U0001F501 **Heterogeneous treatment effects** (HTE) via uplift modeling
 """)
 
 # ----------------------------
-# Metrics Summary
+# Tabs
 # ----------------------------
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("🔢 Total Users", f"{len(df):,}")
-with col2:
-    st.metric("🎯 Treated", f"{(df['treatment']==1).sum():,}")
-with col3:
-    st.metric("📉 Control", f"{(df['treatment']==0).sum():,}")
+tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Distributions", "Segments", "Users"])
 
-col4, col5, col6 = st.columns(3)
-with col4:
-    st.metric("🌐 Booking Rate (Treated)", f"{df[df['treatment']==1]['booking'].mean():.2%}")
-with col5:
-    st.metric("📈 Booking Rate (Control)", f"{df[df['treatment']==0]['booking'].mean():.2%}")
-with col6:
-    st.metric("🔄 Avg Uplift Score", f"{df['uplift_score'].mean():.4f}")
+with tab1:
+    st.subheader("\U0001F4CB Key Metrics")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Users", f"{len(df):,}")
+    col2.metric("Treated", f"{(df['treatment']==1).sum():,}")
+    col3.metric("Control", f"{(df['treatment']==0).sum():,}")
 
-st.divider()
+    col4, col5, col6 = st.columns(3)
+    col4.metric("Booking Rate (Treated)", f"{df[df['treatment']==1]['booking'].mean():.2%}")
+    col5.metric("Booking Rate (Control)", f"{df[df['treatment']==0]['booking'].mean():.2%}")
+    col6.metric("Avg Uplift Score", f"{df['uplift_score'].mean():.4f}")
 
-# ----------------------------
-# Booking Rate by Group
-# ----------------------------
-st.subheader("📊 Booking Rate by Treatment Group")
-fig, ax = plt.subplots()
-rates = df.groupby("treatment")["booking"].mean()
-labels = ["Control", "Treated"]
-ax.bar(labels, rates, color=["#A7C7E7", "#5DAF83"])
-ax.set_ylabel("Booking Rate")
-ax.set_title("Conversion Rate: Treated vs Control")
-st.pyplot(fig)
-st.markdown("🧠 **Insight**: Compare the raw effectiveness of the treatment group versus control in terms of booking conversion.")
+    st.divider()
 
-# ----------------------------
-# Uplift Distribution
-# ----------------------------
-st.subheader("🔄 Uplift Score Distribution")
-fig2, ax2 = plt.subplots()
-sns.histplot(df["uplift_score"], bins=50, kde=True, ax=ax2, color="#8E44AD")
-ax2.set_title("Distribution of Estimated Individual Treatment Effects (Uplift Scores)")
-ax2.set_xlabel("Estimated Uplift")
-st.pyplot(fig2)
-st.markdown("🧠 **Insight**: A wide distribution indicates strong heterogeneity in user response. High variance = opportunity for targeting.")
+    st.subheader("\U0001F4C8 Booking Rate by Treatment Group")
+    rate_fig = px.bar(
+        df.groupby("treatment")["booking"].mean().reset_index(),
+        x="treatment",
+        y="booking",
+        color="treatment",
+        labels={"booking": "Booking Rate", "treatment": "Treatment"},
+        color_discrete_map={0: "#A7C7E7", 1: "#5DAF83"},
+    )
+    st.plotly_chart(rate_fig, use_container_width=True)
 
-# ----------------------------
-# Uplift by Segment
-# ----------------------------
-st.subheader(f"📈 Uplift by {segment_feature.title()}")
-fig3, ax3 = plt.subplots()
-df_sorted = df.sort_values(segment_feature)
-sns.lineplot(data=df_sorted, x=segment_feature, y="uplift_score", ax=ax3, color="#3498DB")
-ax3.set_ylabel("Estimated Uplift Score")
-ax3.set_xlabel(segment_feature.replace("_", " ").title())
-ax3.set_title(f"HTE by {segment_feature.replace('_', ' ').title()}")
-st.pyplot(fig3)
-st.markdown("🧠 **Insight**: Spot user segments with positive or negative lift — helpful for campaign targeting or exclusion.")
+with tab2:
+    st.subheader("\U0001F501 Uplift Score Distribution")
+    dist_fig = px.histogram(df, x="uplift_score", nbins=50, marginal="rug", color_discrete_sequence=["#8E44AD"])
+    st.plotly_chart(dist_fig, use_container_width=True)
 
-# ----------------------------
-# Segment Table: Top/Bottom
-# ----------------------------
-st.subheader("📅 Segment Performance Summary")
-segment_groups = pd.cut(df[segment_feature], bins=5)
-segment_summary = df.groupby(segment_groups)["uplift_score"].mean().reset_index()
-segment_summary.columns = [segment_feature.title(), "Avg Uplift"]
-st.dataframe(segment_summary.sort_values("Avg Uplift", ascending=False), use_container_width=True)
+    st.subheader("\U0001F4C9 Heatmap: Age × Actions vs. Uplift")
+    df_heatmap = df.copy()
+    df_heatmap["age_bin"] = pd.cut(df["age"], bins=5)
+    df_heatmap["action_bin"] = pd.cut(df["total_actions"], bins=5)
+    pivot = df_heatmap.pivot_table(index="age_bin", columns="action_bin", values="uplift_score", aggfunc="mean")
+    heatmap_fig = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=[str(c) for c in pivot.columns],
+        y=[str(i) for i in pivot.index],
+        colorscale="RdBu",
+        colorbar_title="Avg Uplift"
+    ))
+    heatmap_fig.update_layout(title="Uplift Heatmap by Age × Total Actions")
+    st.plotly_chart(heatmap_fig, use_container_width=True)
 
-# ----------------------------
-# Top & Bottom Users
-# ----------------------------
-st.subheader("📃 Top/Bottom Users by Uplift Score")
-col7, col8 = st.columns(2)
-with col7:
-    st.markdown("**🔼 Top 5 Users Most Likely to Benefit**")
-    st.dataframe(df.sort_values("uplift_score", ascending=False).head()[["age", "total_actions", "unique_actions", "total_secs_elapsed", "uplift_score"]], use_container_width=True)
-with col8:
-    st.markdown("**🔽 Top 5 Users Most Likely Harmed**")
-    st.dataframe(df.sort_values("uplift_score").head()[["age", "total_actions", "unique_actions", "total_secs_elapsed", "uplift_score"]], use_container_width=True)
+with tab3:
+    st.subheader(f"\U0001F4CA Uplift by {segment_feature.title()}")
+    seg_fig = px.scatter(
+        df.sort_values(segment_feature),
+        x=segment_feature,
+        y="uplift_score",
+        trendline="lowess",
+        color_discrete_sequence=["#3498DB"],
+        labels={"uplift_score": "Estimated Uplift"}
+    )
+    st.plotly_chart(seg_fig, use_container_width=True)
 
-# ----------------------------
-# Export
-# ----------------------------
-st.download_button("📂 Download Uplift Scores CSV", data=df.to_csv(index=False), file_name="uplift_scores.csv", mime="text/csv")
+    st.subheader("\U0001F4C5 Segment Performance Summary")
+    segment_groups = pd.cut(df[segment_feature], bins=5)
+    segment_summary = df.groupby(segment_groups)["uplift_score"].mean().reset_index()
+    segment_summary.columns = [segment_feature.title(), "Avg Uplift"]
+    styled_df = segment_summary.style.background_gradient(cmap="RdYlGn", subset=["Avg Uplift"])
+    st.dataframe(styled_df, use_container_width=True)
+
+with tab4:
+    st.subheader("\U0001F4D3 Top & Bottom Users by Uplift")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**\U0001F53C Top 5 Users Most Likely to Benefit**")
+        st.dataframe(
+            df.sort_values("uplift_score", ascending=False).head()[["age", "total_actions", "unique_actions", "total_secs_elapsed", "uplift_score"]],
+            use_container_width=True)
+    with col2:
+        st.markdown("**\U0001F53D Top 5 Users Most Likely Harmed**")
+        st.dataframe(
+            df.sort_values("uplift_score").head()[["age", "total_actions", "unique_actions", "total_secs_elapsed", "uplift_score"]],
+            use_container_width=True)
+
+    st.download_button("\U0001F4C2 Download Full Uplift Scores", data=df.to_csv(index=False), file_name="uplift_scores.csv", mime="text/csv")
 
 # ----------------------------
 # Footer
 # ----------------------------
 st.markdown("---")
-st.caption("© 2025 Causify | Built using Streamlit & CausalML | Airbnb dataset simulation")
+st.caption("© 2025 Causify | Airbnb A/B Simulation | Built with Plotly, Streamlit & CausalML")
