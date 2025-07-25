@@ -1,5 +1,3 @@
-# scripts/uplift_modeling.py
-
 """
 This script performs uplift modeling using the X-Learner to estimate
 heterogeneous treatment effects (HTE) — i.e., which users benefit most from treatment.
@@ -7,14 +5,11 @@ heterogeneous treatment effects (HTE) — i.e., which users benefit most from tr
 
 import pandas as pd
 from causalml.inference.meta import BaseXRegressor
-from causalml.propensity import compute_propensity_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor 
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 
-
-MERGED_DATA_PATH = "../data/merged_users.csv"
-
+MERGED_DATA_PATH = "./data/merged_users.csv"
 
 def run_uplift_model(data_path=MERGED_DATA_PATH):
     print("Loading data...")
@@ -35,19 +30,18 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Compute propensity scores (optional but helps for XLearner)
+    # Compute propensity scores (optional but helps for X-Learner)
     print("Estimating propensity scores...")
     ps_model = LogisticRegression()
     ps_model.fit(X_scaled, treatment)
     p = ps_model.predict_proba(X_scaled)[:, 1]
 
-
-    # Train X-Learner
+    # Train X-Learner with RandomForestRegressor
     print("Training BaseXRegressor uplift model...")
     x_learner = BaseXRegressor(
-    learner=RandomForestClassifier(n_estimators=100),
-    control_name=0,
-)
+        learner=RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42),
+        control_name=0
+    )
 
     # Patch required attribute manually to avoid internal error
     x_learner.propensity_model = {
@@ -57,21 +51,25 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
 
     x_learner.fit(X_scaled, treatment, y, p)
 
-
-    # Estimate treatment effect per user
+    # Estimate treatment effect per user (continuous uplift scores)
     te = x_learner.predict(X_scaled)
+
+    # Assign uplift scores directly (no bucketing!)
     df["uplift_score"] = te
 
+    # Optional: Add clipped version for visualization (not used in modeling)
+    df["uplift_score_clipped"] = df["uplift_score"].clip(-0.2, 0.2)
+
     # Save output for dashboard or analysis
-    df_out = df[covariates + ["treatment", "booking", "uplift_score"]]
-    df_out.to_csv("../data/uplift_scores.csv", index=False)
-    print("Uplift scores saved to ../data/uplift_scores.csv")
+    df_out = df[covariates + ["treatment", "booking", "uplift_score", "uplift_score_clipped"]]
+    df_out.to_csv("./data/uplift_scores.csv", index=False)
+    print("✅ Uplift scores saved to ./data/uplift_scores.csv")
 
     # Show top and bottom 5 users by uplift score
-    print("\nTop 5 users most likely to benefit from treatment:")
+    print("\n🔼 Top 5 users most likely to benefit from treatment:")
     print(df_out.sort_values("uplift_score", ascending=False).head())
 
-    print("\nTop 5 users least likely to benefit (or harmed) by treatment:")
+    print("\n🔽 Top 5 users least likely to benefit (or harmed) by treatment:")
     print(df_out.sort_values("uplift_score", ascending=True).head())
 
 

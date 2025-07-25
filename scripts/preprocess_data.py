@@ -25,9 +25,9 @@ def preprocess_airbnb_data(input_path=RAW_DATA_PATH, output_path=OUTPUT_DATA_PAT
     df["booking"] = (df["country_destination"] != "NDF").astype(int)
 
     # Simulate a randomized treatment assignment (50% of users)
-    np.random.seed(seed)
-    df["treatment"] = (df["signup_app"] == "iOS").astype(int)
-
+    np.random.seed(42)
+    df['treatment'] = np.random.binomial(1, 0.5, size=len(df))
+    
     # Filter for valid entries (e.g., gender != unknown, reasonable age)
     df = df[(df["gender"] != "-unknown-") & (df["age"].between(15, 90))]
 

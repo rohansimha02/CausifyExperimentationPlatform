@@ -6,10 +6,13 @@ from session-level features to reduce outcome variance.
 import pandas as pd
 import os
 
-DATA_PATH = "../data/merged_users.csv"
-OUTPUT_PATH = "../data/merged_users_cuped.csv"
+DATA_PATH = "./data/merged_users.csv"
+OUTPUT_PATH = "./data/merged_users_cuped.csv"
 
-CANDIDATE_COVARIATES = ["total_actions", "unique_actions", "avg_secs_per_action"]
+CANDIDATE_COVARIATES = [
+    "total_actions", "unique_actions", "avg_secs_per_action", "total_secs_elapsed"
+]
+
 
 def auto_cuped(data_path=DATA_PATH, output_path=OUTPUT_PATH):
     print("Loading data...")
@@ -32,7 +35,7 @@ def auto_cuped(data_path=DATA_PATH, output_path=OUTPUT_PATH):
             theta = ((x - x.mean()) * (y - y.mean())).sum() / ((x - x.mean()) ** 2).sum()
             best_theta = theta
 
-    print(f"\n📈 Best covariate for CUPED: {best_cov} (corr = {best_corr:.4f})")
+    print(f"\nBest covariate for CUPED: {best_cov} (corr = {best_corr:.4f})")
     df["booking_cuped"] = y - best_theta * (df[best_cov] - df[best_cov].mean())
 
     treatment_mean = df[df["treatment"] == 1]["booking_cuped"].mean()

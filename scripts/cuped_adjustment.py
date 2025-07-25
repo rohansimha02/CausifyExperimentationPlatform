@@ -7,8 +7,8 @@ import pandas as pd
 import os
 
 # Paths
-MERGED_DATA_PATH = "../data/merged_users.csv"
-OUTPUT_PATH = "../data/merged_users_cuped.csv"
+MERGED_DATA_PATH = "./data/merged_users.csv"
+OUTPUT_PATH = "./data/merged_users_cuped.csv"
 
 def apply_cuped(data_path=MERGED_DATA_PATH, output_path=OUTPUT_PATH):
     print("Loading merged user + session feature data...")
