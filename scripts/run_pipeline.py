@@ -14,6 +14,7 @@ This script executes the full experimental workflow:
 
 import subprocess
 import os
+from pathlib import Path
 
 STAGES = [
     ("Preprocessing user data", "preprocess_data.py"),
@@ -29,9 +30,14 @@ STAGES = [
 
 def run_pipeline():
     print("\nStarting full Causify pipeline...\n")
+
+    scripts_dir = Path(__file__).resolve().parent
+    project_root = scripts_dir.parent
+
     for desc, script in STAGES:
+        script_path = scripts_dir / script
         print(f"{desc} — {script}")
-        subprocess.run(["python", script], cwd=os.path.dirname(__file__))
+        subprocess.run(["python", str(script_path)], cwd=project_root)
         print("\n" + "-" * 60 + "\n")
 
     print("All stages complete. Uplift scores available at /data/uplift_scores.csv")
