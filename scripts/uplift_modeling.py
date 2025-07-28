@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-MERGED_DATA_PATH = "./data/merged_users.csv"
+MERGED_DATA_PATH = "../data/merged_users.csv"
 
 def run_uplift_model(data_path=MERGED_DATA_PATH):
     print("Loading data...")
@@ -62,8 +62,8 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
 
     # Save output for dashboard or analysis
     df_out = df[covariates + ["treatment", "booking", "uplift_score", "uplift_score_clipped"]]
-    df_out.to_csv("./data/uplift_scores.csv", index=False)
-    print("✅ Uplift scores saved to ./data/uplift_scores.csv")
+    df_out.to_csv("../data/uplift_scores.csv", index=False)
+    print("Uplift scores saved to ../data/uplift_scores.csv")
 
     # Show top and bottom 5 users by uplift score
     print("\n🔼 Top 5 users most likely to benefit from treatment:")

@@ -9,8 +9,8 @@ import pandas as pd
 import os
 
 # Set paths
-RAW_SESSIONS_PATH = "./data/sessions.csv"
-OUTPUT_FEATURES_PATH = "./data/user_session_features.csv"
+RAW_SESSIONS_PATH = "../data/sessions.csv"
+OUTPUT_FEATURES_PATH = "../data/user_session_features.csv"
 
 
 def generate_session_features(input_path=RAW_SESSIONS_PATH, output_path=OUTPUT_FEATURES_PATH):

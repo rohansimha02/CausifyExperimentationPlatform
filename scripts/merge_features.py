@@ -9,9 +9,9 @@ import numpy as np
 import os
 
 # Input paths
-CLEAN_USERS_PATH = "./data/clean_users.csv"
-SESSION_FEATURES_PATH = "./data/user_session_features.csv"
-OUTPUT_PATH = "./data/merged_users.csv"
+CLEAN_USERS_PATH = "../data/clean_users.csv"
+SESSION_FEATURES_PATH = "../data/user_session_features.csv"
+OUTPUT_PATH = "../data/merged_users.csv"
 
 def merge_user_features(user_path=CLEAN_USERS_PATH, session_path=SESSION_FEATURES_PATH, output_path=OUTPUT_PATH):
     print("Loading cleaned users and session features...")

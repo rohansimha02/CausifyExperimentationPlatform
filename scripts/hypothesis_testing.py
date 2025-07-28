@@ -11,7 +11,7 @@ from scipy.stats import ttest_ind
 import numpy as np
 
 # Load cleaned user-level data
-DATA_PATH = "./data/merged_users.csv"
+DATA_PATH = "../data/merged_users.csv"
 
 def run_t_test(data_path=DATA_PATH):
     print("Loading data for hypothesis testing...")

@@ -9,8 +9,8 @@ import numpy as np
 import os
 
 # Set paths
-RAW_DATA_PATH = "./data/train_users_2.csv"
-OUTPUT_DATA_PATH = "./data/clean_users.csv"
+RAW_DATA_PATH = "../data/train_users_2.csv"
+OUTPUT_DATA_PATH = "../data/clean_users.csv"
 
 
 def preprocess_airbnb_data(input_path=RAW_DATA_PATH, output_path=OUTPUT_DATA_PATH, seed=42):

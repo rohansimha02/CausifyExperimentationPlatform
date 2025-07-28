@@ -10,8 +10,8 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 import os
 
-MERGED_DATA_PATH = "./data/merged_users_cuped.csv"  # Use CUPED-adjusted file
-OUTPUT_MATCHED_PATH = "./data/matched_users.csv"
+MERGED_DATA_PATH = "../data/merged_users_cuped.csv" 
+OUTPUT_MATCHED_PATH = "../data/matched_users.csv"
 
 def estimate_ate_with_psm(data_path=MERGED_DATA_PATH, output_path=OUTPUT_MATCHED_PATH):
     print("Loading CUPED-adjusted data...")

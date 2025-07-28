@@ -6,8 +6,8 @@ from session-level features to reduce outcome variance.
 import pandas as pd
 import os
 
-DATA_PATH = "./data/merged_users.csv"
-OUTPUT_PATH = "./data/merged_users_cuped.csv"
+DATA_PATH = "../data/merged_users.csv"
+OUTPUT_PATH = "../data/merged_users_cuped.csv"
 
 CANDIDATE_COVARIATES = [
     "total_actions", "unique_actions", "avg_secs_per_action", "total_secs_elapsed"
