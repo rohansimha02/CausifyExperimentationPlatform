@@ -33,12 +33,42 @@ def preprocess_airbnb_data(input_path=RAW_DATA_PATH, output_path=OUTPUT_DATA_PAT
 
     # Select relevant columns (including 'id' for downstream merge)
     keep_cols = [
-        "id", "signup_method", "gender", "age", "language", "affiliate_channel",
-        "affiliate_provider", "signup_app", "first_device_type", "first_browser",
-        "booking", "treatment"
+        "id",
+        "signup_method",
+        "signup_flow",
+        "gender",
+        "age",
+        "language",
+        "affiliate_channel",
+        "affiliate_provider",
+        "signup_app",
+        "first_device_type",
+        "first_browser",
+        "booking",
+        "treatment",
     ]
     df_clean = df.loc[:, ~df.columns.duplicated()]
     df_clean = df_clean[keep_cols]
+
+    # Create engineered features
+    df_clean["age_squared"] = df_clean["age"] ** 2
+    df_clean["age_bucket"] = pd.cut(
+        df_clean["age"], bins=[15, 25, 35, 45, 55, 65, 90], labels=False
+    )
+
+    # Encode categorical variables numerically for modeling convenience
+    cat_cols = [
+        "signup_method",
+        "language",
+        "affiliate_channel",
+        "affiliate_provider",
+        "signup_app",
+        "first_device_type",
+        "first_browser",
+        "gender",
+    ]
+    for col in cat_cols:
+        df_clean[col] = pd.factorize(df_clean[col])[0]
 
     # Save cleaned file
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
