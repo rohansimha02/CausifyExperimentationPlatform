@@ -13,7 +13,16 @@ import os
 MERGED_DATA_PATH = "../data/merged_users_cuped.csv" 
 OUTPUT_MATCHED_PATH = "../data/matched_users.csv"
 
-def estimate_ate_with_psm(data_path=MERGED_DATA_PATH, output_path=OUTPUT_MATCHED_PATH):
+def standardized_mean_diff(x_treat, x_ctrl):
+    return (x_treat.mean() - x_ctrl.mean()) / np.sqrt(0.5 * (x_treat.var() + x_ctrl.var()))
+
+
+def estimate_ate_with_psm(
+    data_path=MERGED_DATA_PATH,
+    output_path=OUTPUT_MATCHED_PATH,
+    n_neighbors=5,
+    caliper=0.05,
+):
     print("Loading CUPED-adjusted data...")
     df = pd.read_csv(data_path)
 
@@ -36,11 +45,19 @@ def estimate_ate_with_psm(data_path=MERGED_DATA_PATH, output_path=OUTPUT_MATCHED
     control = df[df["treatment"] == 0].copy()
 
     print("Matching treated users with nearest control neighbors...")
-    nbrs = NearestNeighbors(n_neighbors=1).fit(control[["propensity_score"]])
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors).fit(control[["propensity_score"]])
     distances, indices = nbrs.kneighbors(treated[["propensity_score"]])
 
-    matched_control = control.iloc[indices.flatten()].reset_index(drop=True)
-    matched_treated = treated.reset_index(drop=True)
+    matched_rows = []
+    for i, (dist_row, idx_row) in enumerate(zip(distances, indices)):
+        mask = dist_row <= caliper
+        if not mask.any():
+            continue
+        chosen = idx_row[mask][0]
+        matched_rows.append((i, chosen))
+
+    matched_treated = treated.iloc[[i for i, _ in matched_rows]].reset_index(drop=True)
+    matched_control = control.iloc[[j for _, j in matched_rows]].reset_index(drop=True)
 
     # Estimate ATE on CUPED-adjusted outcome
     y_treat = matched_treated["booking_cuped"].values
@@ -57,6 +74,13 @@ def estimate_ate_with_psm(data_path=MERGED_DATA_PATH, output_path=OUTPUT_MATCHED
     matched_df = pd.concat([matched_treated, matched_control], axis=0)
     matched_df.to_csv(output_path, index=False)
     print(f"Matched dataset saved to {output_path}")
+
+    # Diagnostics: Standardized mean differences
+    print("\nStandardized Mean Differences after matching:")
+    for cov in covariates:
+        smd_before = standardized_mean_diff(treated[cov], control[cov])
+        smd_after = standardized_mean_diff(matched_treated[cov], matched_control[cov])
+        print(f"{cov}: before={smd_before:.3f}, after={smd_after:.3f}")
 
 if __name__ == "__main__":
     estimate_ate_with_psm()

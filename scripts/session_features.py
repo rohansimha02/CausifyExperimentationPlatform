@@ -2,7 +2,9 @@
 
 """
 This script aggregates the Airbnb sessions dataset into per-user behavioral features.
-These features can be joined with user-level data for uplift modeling, CUPED, and matching.
+Additional statistics such as medians and session counts are generated to enrich
+the modeling dataset. These features can be joined with user-level data for uplift
+modeling, CUPED, and matching.
 """
 
 import pandas as pd
@@ -19,12 +21,19 @@ def generate_session_features(input_path=RAW_SESSIONS_PATH, output_path=OUTPUT_F
 
     print("Creating session-level aggregates per user...")
     # Aggregate session metrics by user_id
-    agg_df = df.groupby("user_id").agg(
-        total_actions=("action", "count"),
-        unique_actions=("action", pd.Series.nunique),
-        total_secs_elapsed=("secs_elapsed", "sum"),
-        avg_secs_per_action=("secs_elapsed", "mean")
-    ).reset_index()
+    agg_ops = {
+        "total_actions": ("action", "count"),
+        "unique_actions": ("action", pd.Series.nunique),
+        "total_secs_elapsed": ("secs_elapsed", "sum"),
+        "avg_secs_per_action": ("secs_elapsed", "mean"),
+        "median_secs_elapsed": ("secs_elapsed", "median"),
+    }
+
+    # Include session count if column exists
+    if "session_id" in df.columns:
+        agg_ops["num_sessions"] = ("session_id", pd.Series.nunique)
+
+    agg_df = df.groupby("user_id").agg(**agg_ops).reset_index()
 
     # Drop NaNs (some users may not have valid session durations)
     agg_df = agg_df.dropna()

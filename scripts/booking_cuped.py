@@ -4,45 +4,56 @@ from session-level features to reduce outcome variance.
 """
 
 import pandas as pd
+import numpy as np
 import os
 
 DATA_PATH = "../data/merged_users.csv"
 OUTPUT_PATH = "../data/merged_users_cuped.csv"
 
 CANDIDATE_COVARIATES = [
-    "total_actions", "unique_actions", "avg_secs_per_action", "total_secs_elapsed"
+    "total_actions",
+    "unique_actions",
+    "avg_secs_per_action",
+    "total_secs_elapsed",
+    "median_secs_elapsed",
 ]
 
 
-def auto_cuped(data_path=DATA_PATH, output_path=OUTPUT_PATH):
+def auto_cuped(data_path=DATA_PATH, output_path=OUTPUT_PATH, holdout_frac=0.5):
+    """Apply multivariate CUPED using a hold-out split for theta estimation."""
     print("Loading data...")
     df = pd.read_csv(data_path)
 
     # Filter valid rows
     df = df.dropna(subset=CANDIDATE_COVARIATES)
 
-    y = df["booking"]
-    best_cov = None
-    best_corr = 0
-    best_theta = 0
+    y = df["booking"].values
+    X = df[CANDIDATE_COVARIATES].values
 
-    for cov in CANDIDATE_COVARIATES:
-        x = df[cov]
-        corr = abs(x.corr(y))
-        if corr > best_corr:
-            best_corr = corr
-            best_cov = cov
-            theta = ((x - x.mean()) * (y - y.mean())).sum() / ((x - x.mean()) ** 2).sum()
-            best_theta = theta
+    # Split into holdout for theta estimation
+    n_holdout = int(len(df) * holdout_frac)
+    rng = np.random.RandomState(42)
+    perm = rng.permutation(len(df))
+    idx_hold = perm[:n_holdout]
+    idx_apply = perm[n_holdout:]
 
-    print(f"\nBest covariate for CUPED: {best_cov} (corr = {best_corr:.4f})")
-    df["booking_cuped"] = y - best_theta * (df[best_cov] - df[best_cov].mean())
+    X_hold = X[idx_hold] - X[idx_hold].mean(axis=0)
+    y_hold = y[idx_hold] - y[idx_hold].mean()
 
-    treatment_mean = df[df["treatment"] == 1]["booking_cuped"].mean()
-    control_mean = df[df["treatment"] == 0]["booking_cuped"].mean()
+    # Compute theta via multivariate regression
+    theta = np.linalg.pinv(X_hold.T @ X_hold) @ (X_hold.T @ y_hold)
+
+    # Apply adjustment to full data
+    X_centered = X - X.mean(axis=0)
+    adjustment = (X_centered @ theta)
+    df["booking_cuped"] = y - adjustment
+
+    treatment_mean = df.loc[df["treatment"] == 1, "booking_cuped"].mean()
+    control_mean = df.loc[df["treatment"] == 0, "booking_cuped"].mean()
     lift = treatment_mean - control_mean
 
-    print(f"Theta: {best_theta:.4f}")
+    print("\nCUPED with multiple covariates")
+    print("Theta:", theta)
     print(f"Adjusted Treatment Mean: {treatment_mean:.4f}")
     print(f"Adjusted Control Mean:   {control_mean:.4f}")
     print(f"Estimated Lift:          {lift:.4f}")

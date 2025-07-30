@@ -12,30 +12,64 @@ This script executes the full experimental workflow:
 7. Uplift modeling
 """
 
-import subprocess
-import os
+import argparse
+from pathlib import Path
 
-STAGES = [
-    ("Preprocessing user data", "preprocess_data.py"),
-    ("Generating session features", "session_features.py"),
-    ("Merging user and session data", "merge_features.py"),
-    ("Running hypothesis test (t-test)", "hypothesis_testing.py"),
-    ("Running CUPED adjustment (using unique_actions)", "booking_cuped.py"),
-    ("Running Propensity Score Matching (on booking_cuped)", "causal_inference.py"),
-    ("Running uplift modeling", "uplift_modeling.py"),
-    ("Generating dashboard data", "generate_dashboard_data.py")
-]
+from preprocess_data import preprocess_airbnb_data
+from session_features import generate_session_features
+from merge_features import merge_user_features
+from hypothesis_testing import run_z_test
+from booking_cuped import auto_cuped
+from causal_inference import estimate_ate_with_psm
+from uplift_modeling import run_uplift_model
+from generate_dashboard_data import main as generate_dashboard
 
-
-def run_pipeline():
+def run_pipeline(data_dir: str, n_neighbors: int = 5, caliper: float = 0.05):
+    data_path = Path(data_dir)
     print("\nStarting full Causify pipeline...\n")
-    for desc, script in STAGES:
-        print(f"{desc} — {script}")
-        subprocess.run(["python", script], cwd=os.path.dirname(__file__))
-        print("\n" + "-" * 60 + "\n")
+
+    preprocess_airbnb_data(
+        input_path=data_path / "train_users_2.csv",
+        output_path=data_path / "clean_users.csv",
+    )
+
+    generate_session_features(
+        input_path=data_path / "sessions.csv",
+        output_path=data_path / "user_session_features.csv",
+    )
+
+    merge_user_features(
+        user_path=data_path / "clean_users.csv",
+        session_path=data_path / "user_session_features.csv",
+        output_path=data_path / "merged_users.csv",
+    )
+
+    run_z_test(data_path=data_path / "merged_users.csv")
+
+    auto_cuped(
+        data_path=data_path / "merged_users.csv",
+        output_path=data_path / "merged_users_cuped.csv",
+    )
+
+    estimate_ate_with_psm(
+        data_path=data_path / "merged_users_cuped.csv",
+        output_path=data_path / "matched_users.csv",
+        n_neighbors=n_neighbors,
+        caliper=caliper,
+    )
+
+    run_uplift_model(data_path=data_path / "merged_users.csv")
+
+    generate_dashboard()
 
     print("All stages complete. Uplift scores available at /data/uplift_scores.csv")
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    parser = argparse.ArgumentParser(description="Run the full Causify pipeline")
+    parser.add_argument("--data_dir", default="../data", help="Directory of input/output data")
+    parser.add_argument("--n_neighbors", type=int, default=5, help="Number of neighbors for PSM")
+    parser.add_argument("--caliper", type=float, default=0.05, help="Caliper for propensity score matching")
+    args = parser.parse_args()
+
+    run_pipeline(args.data_dir, args.n_neighbors, args.caliper)

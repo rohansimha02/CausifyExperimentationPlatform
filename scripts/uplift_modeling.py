@@ -5,9 +5,12 @@ heterogeneous treatment effects (HTE) — i.e., which users benefit most from tr
 
 import pandas as pd
 from causalml.inference.meta import BaseXRegressor
-from sklearn.ensemble import RandomForestRegressor 
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import numpy as np
 
 MERGED_DATA_PATH = "../data/merged_users.csv"
 
@@ -30,11 +33,17 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    # Train/test split for model evaluation
+    X_train, X_test, t_train, t_test, y_train, y_test = train_test_split(
+        X_scaled, treatment, y, test_size=0.2, random_state=42
+    )
+
     # Compute propensity scores (optional but helps for X-Learner)
     print("Estimating propensity scores...")
     ps_model = LogisticRegression()
-    ps_model.fit(X_scaled, treatment)
-    p = ps_model.predict_proba(X_scaled)[:, 1]
+    ps_model.fit(X_train, t_train)
+    p_train = ps_model.predict_proba(X_train)[:, 1]
+    p_test = ps_model.predict_proba(X_test)[:, 1]
 
     # Train X-Learner with RandomForestRegressor
     print("Training BaseXRegressor uplift model...")
@@ -49,10 +58,17 @@ def run_uplift_model(data_path=MERGED_DATA_PATH):
         1: ps_model
     }
 
-    x_learner.fit(X_scaled, treatment, y, p)
+    x_learner.fit(X_train, t_train, y_train, p_train)
 
     # Estimate treatment effect per user (continuous uplift scores)
-    te = x_learner.predict(X_scaled)
+    te_train = x_learner.predict(X_train)
+    te_test = x_learner.predict(X_test)
+
+    # Simple evaluation using mean squared error of treatment effect
+    mse = mean_squared_error(y_test - y_train.mean(), te_test)
+    print(f"Validation MSE: {mse:.4f}")
+
+    te = np.concatenate([te_train, te_test])
 
     # Assign uplift scores directly (no bucketing!)
     df["uplift_score"] = te
