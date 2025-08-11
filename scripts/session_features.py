@@ -1,26 +1,33 @@
-# scripts/session_features.py
-
 """
-This script aggregates the Airbnb sessions dataset into per-user behavioral features.
-Additional statistics such as medians and session counts are generated to enrich
-the modeling dataset. These features can be joined with user-level data for uplift
-modeling, CUPED, and matching.
+Session Features Engineering
+
+Aggregates session data into user-level behavioral features
+for uplift modeling, CUPED adjustment, and propensity matching.
 """
 
 import pandas as pd
 import os
 
-# Set paths
+# Configuration
 RAW_SESSIONS_PATH = "../data/sessions.csv"
 OUTPUT_FEATURES_PATH = "../data/user_session_features.csv"
 
 
 def generate_session_features(input_path=RAW_SESSIONS_PATH, output_path=OUTPUT_FEATURES_PATH):
+    """
+    Generate user-level behavioral features from session data.
+    
+    Args:
+        input_path (str): Path to raw sessions data
+        output_path (str): Path for output features file
+    """
     print("Loading sessions data...")
     df = pd.read_csv(input_path)
+    
+    df['secs_elapsed'] = df['secs_elapsed'].fillna(0)
 
-    print("Creating session-level aggregates per user...")
-    # Aggregate session metrics by user_id
+    print("Aggregating session metrics by user...")
+    
     agg_ops = {
         "total_actions": ("action", "count"),
         "unique_actions": ("action", pd.Series.nunique),
@@ -29,19 +36,24 @@ def generate_session_features(input_path=RAW_SESSIONS_PATH, output_path=OUTPUT_F
         "median_secs_elapsed": ("secs_elapsed", "median"),
     }
 
-    # Include session count if column exists
-    if "session_id" in df.columns:
-        agg_ops["num_sessions"] = ("session_id", pd.Series.nunique)
-
+    user_session_counts = df.groupby('user_id').size()
+    
     agg_df = df.groupby("user_id").agg(**agg_ops).reset_index()
+    
+    agg_df = agg_df.merge(
+        user_session_counts.reset_index().rename(columns={0: 'num_sessions'}),
+        on='user_id', how='left'
+    )
 
-    # Drop NaNs (some users may not have valid session durations)
-    agg_df = agg_df.dropna()
+    agg_df = agg_df.fillna(0)
+    
+    agg_df['actions_per_session'] = agg_df['total_actions'] / agg_df['num_sessions'].clip(lower=1)
+    agg_df['engagement_ratio'] = agg_df['unique_actions'] / agg_df['total_actions'].clip(lower=1)
 
-    # Save features
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     agg_df.to_csv(output_path, index=False)
     print(f"Session features saved to {output_path}. Shape: {agg_df.shape}")
+    print(f"Features created: {list(agg_df.columns)}")
 
 
 if __name__ == "__main__":
