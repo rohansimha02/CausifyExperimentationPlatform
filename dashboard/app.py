@@ -69,11 +69,26 @@ DEFAULT_PARENT = Path(__file__).resolve().parent.parent / "data" / "final_dashbo
 
 st.sidebar.header("Data")
 local_exists = DEFAULT_LOCAL.exists() or DEFAULT_PARENT.exists()
-source = st.sidebar.selectbox(
-    "Source",
-    options=(["Local file"] if local_exists else []) + ["Upload"],
-    index=0 if local_exists else 0
-)
+
+# For deployment, prioritize the local file in dashboard directory
+if DEFAULT_LOCAL.exists():
+    source = st.sidebar.selectbox(
+        "Source",
+        options=["Local file", "Upload"],
+        index=0,
+        help="Demo data is pre-loaded for exploration"
+    )
+elif DEFAULT_PARENT.exists():
+    source = st.sidebar.selectbox(
+        "Source", 
+        options=["Local file", "Upload"],
+        index=0,
+        help="Local file from data directory"
+    )
+else:
+    source = "Upload"
+    st.sidebar.info("💡 Upload the final_dashboard_data.csv file to get started")
+
 uploaded = None
 if source == "Upload":
     uploaded = st.sidebar.file_uploader("Upload final_dashboard_data.csv", type=["csv"])
@@ -254,14 +269,14 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Overview",
     "Uplift Analysis", 
     "Targeting Strategy",
-    "Model Summary",
+    "Model & Experiment Validation",
     "Summary & Recommendations"
 ])
 
 # Tab 1: Overview
 with tab1:
-    st.subheader("Executive Summary")
-    st.caption("Does the new booking interface improve conversion rates? By how much, and can we trust the results?")
+    st.subheader("Overview")
+    st.caption("Why: check if treatment beats control and by how much.")
 
     # Get current filtered statistics
     tr, cr = tc_rates(df_f)
@@ -356,10 +371,11 @@ with tab1:
 
 # Tab 2: Uplift analysis
 with tab2:
-    st.subheader("Who Benefits from the New Interface?")
+    st.subheader("Uplift Analysis")
+    st.caption("Why: find who benefits most from treatment.")
 
     mean_uplift = df_f[uplift_col].mean()
-    st.caption(f"Uplift = predicted increase in booking chance if treated. Dashed line = average predicted improvement ({mean_uplift:.2%}).")
+    st.caption(f"What this shows: distribution of predicted improvement; dashed line = average ({mean_uplift:.2%}).")
 
     # Individual uplift distribution
     dist = px.histogram(
@@ -399,8 +415,8 @@ with tab2:
                 unsafe_allow_html=True
             )
 
-    st.subheader("Model Validation: Do Higher Uplift Scores Really Lift More?")
-    st.caption("Users bucketed into 10 groups by predicted improvement, showing observed lift per bucket.")
+    st.subheader("Model Performance")
+    st.caption("What this shows: higher predicted uplift should correspond to higher observed lift (bucketed).")
 
     df_dec, _ = compute_deciles(df_f, uplift_col, q=10)
     calib = decile_calibration(df_dec, dec_col="decile").sort_values("bucket")
@@ -429,8 +445,8 @@ with tab2:
 
 # Tab 3: Targeting
 with tab3:
-    st.subheader("How to Roll Out for Maximum Impact")
-    st.caption("Target the highest predicted improvers first to maximize ROI.")
+    st.subheader("Targeting Strategy")
+    st.caption("Why: maximize ROI by treating users most likely to benefit first.")
 
     pct_slider = st.slider("Choose rollout size (top % by predicted improvement)", 5, 100, 30, step=5)
     n_target = int(len(df_f) * (pct_slider / 100))
@@ -480,8 +496,8 @@ with tab3:
         st.warning(
             f"Aggressive rollout: {pct_slider}% coverage. Expect diminishing returns; monitor ROI closely."
         )
-    st.subheader("Cumulative Impact When Targeting Highest-Scoring Users")
-    st.caption("More users targeted → more incremental bookings. Early slope = efficiency (Qini methodology).")
+    st.subheader("Cumulative Impact")
+    st.caption("What this shows: more users targeted → more incremental bookings (Qini curve).")
 
     xs, ys = build_gain_curve(df_f, uplift_col, step=0.1)
     qini = go.Figure()
@@ -509,8 +525,8 @@ with tab3:
 
 # Tab 4: Validation
 with tab4:
-    st.subheader("Experiment Validation: Was the Test Fair and Are Predictions Credible?")
-    st.caption("Quality checks for randomization and model trust.")
+    st.subheader("Model & Experiment Validation")
+    st.caption("Why: confirm randomization worked and that model predictions are credible.")
 
     st.subheader("Balance & Randomization Diagnostics")
     
@@ -740,6 +756,7 @@ with tab4:
 # Tab 5: Recommendations
 with tab5:
     st.subheader("Summary & Recommendations")
+    st.caption("Why: turn findings into a launch decision and rollout plan.")
     
     effect_size = float(df_f["global_effect_size"].iloc[0])
     added_bookings = effect_size * impact_scale
