@@ -464,7 +464,7 @@ st.markdown(
     "A randomized experiment on Airbnb booking data comparing a *new booking interface* (treatment) to the current (control), "
     "summarizing results, showing who benefits most, and outlining an ROI-first rollout."
 )
-st.markdown("Tabs: **(1)** experiment results, **(2)** uplift (who benefits), **(3)** targeting strategy, **(4)** validation, **(5)** summary & reference.")
+st.markdown("Tabs: **(1)** experiment results, **(2)** uplift (who benefits), **(3)** targeting strategy, **(4)** validation, **(5)** summary & recommendations.")
 
 # Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
