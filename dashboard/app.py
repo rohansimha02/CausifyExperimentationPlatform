@@ -1309,7 +1309,7 @@ with tab5:
     avg_uplift_full = base_total_inc / max(len(df_f), 1)
     roi_boost = (avg_uplift_targeted / max(avg_uplift_full, 1e-9)) if avg_uplift_full != 0 else 0.0
     
-    st.markdown("#### Key Takeaways")
+    st.markdown("##### Key Takeaways:")
     
     st.markdown(f"""
     <div style="
@@ -1331,7 +1331,7 @@ with tab5:
     
     st.markdown("---")
     
-    st.markdown("**Strategic Recommendations:**")
+    st.markdown("##### Strategic Recommendations:")
     col1, col2, col3, col4 = st.columns(4)
     with col1: rec_card("Rollout", "Start with top 25%; expand to 50% after validation, then full rollout.", COLORS["primary"])
     with col2: rec_card("Monitoring", "Track conversion, calibration, and revenue per user weekly.", COLORS["accent"])
