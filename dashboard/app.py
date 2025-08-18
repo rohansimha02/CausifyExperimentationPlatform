@@ -472,8 +472,8 @@ section[data-testid="stSidebar"] {
     visibility: visible !important;
     opacity: 1 !important;
     width: 300px !important;
-    min-width: 300px !important;
-    max-width: 350px !important;
+    min-width: 280px !important;
+    max-width: 320px !important;
     transform: translateX(0) !important;
     overflow-y: auto !important;
 }
@@ -945,7 +945,6 @@ with tab2:
     st.caption("Why: find who benefits most from treatment.")
 
     mean_uplift = float(df_f[uplift_col].mean())
-    st.caption(f"What this shows: distribution of predicted improvement; dashed line = average ({mean_uplift:.2%}).")
 
     dist = px.histogram(
         df_f, x=uplift_col, nbins=40, marginal="rug",
@@ -955,6 +954,7 @@ with tab2:
     dist.add_vline(x=mean_uplift, line_dash="dash", line_color=COLORS["accent"])
     dist.update_layout(title=dict(text="Distribution of Individual Uplift Predictions", x=0.5), yaxis=dict(title="Users"), height=400)
     st.plotly_chart(apply_chart_theme(dist), use_container_width=True)
+    st.caption(f"What this shows: distribution of predicted improvement; dashed line = average ({mean_uplift:.2%}).")
 
     pos_share = float((df_f[uplift_col] > 0).mean())
     hi_share = float((df_f[uplift_col] > np.percentile(df_f[uplift_col], 80)).mean())
@@ -1249,13 +1249,13 @@ with tab4:
                 st.markdown(f"""
                 <div class="metric-card">
                     <div class="metric-header">
-                        <span class="metric-icon">⚙️</span>
-                        <span class="metric-name">{name}</span>
+                            <span class="metric-icon">⚙️</span>
+                            <span class="metric-name">{name}</span>
                     </div>
-                    <div class="metric-value" style="color: #FF6B6B; font-weight: 800;">{value}</div>
-                    <div class="metric-implication">{expl}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                        <div class="metric-value" style="color: #FF6B6B; font-weight: 800;">{value}</div>
+                        <div class="metric-implication">{expl}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
             elif name == "Statistical Precision (CUPED)":
                 st.markdown(f"""
                 <div class="metric-card">
@@ -1320,11 +1320,11 @@ with tab5:
         margin: 0.5rem 0;
     ">
         <ul style="margin: 0; padding-left: 1rem; line-height: 1.4; font-size: 1.05rem;">
-            <li><strong style="color: #FF6B6B;">{pct(effect_size,1)} conversion lift</strong> • z-score: {z_stat:.1f} • Highly statistically significant results</li>
-            <li><strong style="color: #0d9488;">Smart targeting works</strong> • Model successfully identifies high-impact users</li>
-            <li><strong style="color: #FF6B6B;">${revenue_impact:,.0f} annual revenue</strong> • {added_bookings:,.0f} incremental bookings • At {impact_scale:,} total users scale</li>
-            <li><strong style="color: #FF6B6B;">{roi_boost:.1f}x ROI boost</strong> • Top 25% users deliver better returns than broad rollout</li>
-            <li><strong style="color: #10b981;">Low risk</strong> • 95% CI ({pct(ci_lower,1)} to {pct(ci_upper,1)}) • All confidence intervals positive</li>
+            <li><strong>{pct(effect_size,1)} conversion lift</strong> • z-score: {z_stat:.1f} • Highly statistically significant results</li>
+            <li><strong>Smart targeting works</strong> • Model successfully identifies high-impact users</li>
+            <li><strong>${revenue_impact:,.0f} annual revenue</strong> • {added_bookings:,.0f} incremental bookings • At {impact_scale:,} total users scale</li>
+            <li><strong>{roi_boost:.1f}x ROI boost</strong> • Top 25% users deliver better returns than broad rollout</li>
+            <li><strong>Low risk</strong> • 95% CI ({pct(ci_lower,1)} to {pct(ci_upper,1)}) • All confidence intervals positive</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
