@@ -1,23 +1,14 @@
-# ==========================================
-# Causify Experimentation Platform — MAX
-# ==========================================
-# A/B testing dashboard with uplift modeling,
-# statistical validation, and ROI-focused targeting.
-# Combines the strongest bits from both versions with
-# robust light/dark theming and a polished UI.
-# ==========================================
+# Causify Experimentation Platform
+# A/B testing dashboard with uplift modeling, statistical validation, and ROI-focused targeting
 
 from pathlib import Path
-import io
 import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
-# ----------------------------
 # Page configuration
-# ----------------------------
 st.set_page_config(
     page_title="Causify Experimentation Platform",
     layout="wide",
@@ -25,11 +16,482 @@ st.set_page_config(
     page_icon="📊"
 )
 
-# ----------------------------
+# Force light mode and clean styling
+st.markdown("""
+<style>
+/* Force light mode */
+[data-testid="stAppViewContainer"] {
+    background-color: #ffffff !important;
+}
+
+/* Force coral colors */
+.kpi-value[style*="color: #FF6B6B"] {
+    color: #FF6B6B !important;
+}
+
+.metric-value[style*="color: #FF6B6B"] {
+    color: #FF6B6B !important;
+}
+
+/* Force footer colors */
+div[style*="text-align: center"] span[style*="color: var(--primary-color)"] {
+    color: #FF6B6B !important;
+}
+div[style*="text-align: center"] span[style*="color: var(--accent-color)"] {
+    color: #45B7D1 !important;
+}
+
+/* Force white backgrounds */
+[data-testid="stAppViewContainer"], 
+[data-testid="stSidebar"], 
+.main .block-container {
+    background-color: #ffffff !important;
+}
+
+/* Remove sidebar grid borders */
+section[data-testid="stSidebar"] div,
+section[data-testid="stSidebar"] div > div,
+section[data-testid="stSidebar"] div > div > div,
+section[data-testid="stSidebar"] div > div > div > div {
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Make ALL text in inputs dark (keep) */
+section[data-testid="stSidebar"] input,
+section[data-testid="stSidebar"] select,
+section[data-testid="stSidebar"] [data-baseweb="base-input"],
+section[data-testid="stSidebar"] [data-baseweb="select"],
+section[data-testid="stSidebar"] [data-baseweb="input"],
+section[data-testid="stSidebar"] [data-baseweb="option"],
+section[data-testid="stSidebar"] [data-baseweb="tag"],
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] div {
+    color: #0f172a !important;
+}
+
+/* Ultra clean, modern sidebar styling */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 50%, #ffffff 100%) !important;
+    border-right: 1px solid rgba(255, 107, 107, 0.08) !important;
+    padding: 2.5rem !important;
+    box-shadow: inset -2px 0 20px rgba(255, 107, 107, 0.03) !important;
+    border-radius: 18px 0 0 18px !important;
+}
+
+/* Enhanced radio button styling for cleaner look */
+section[data-testid="stSidebar"] [data-baseweb="radio"] {
+    margin: 8px 0 !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"] label {
+    padding: 12px 16px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.04) !important;
+    transition: all 0.2s ease !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"]:hover label {
+    border-color: rgba(255,107,107,0.3) !important;
+    box-shadow: 0 4px 12px rgba(255,107,107,0.1) !important;
+    transform: translateY(-1px) !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"] label {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    border-color: #FF6B6B !important;
+    color: white !important;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.25) !important;
+    font-weight: 600 !important;
+}
+
+/* NEW: Round + frame the inner sidebar content without changing layout */
+section[data-testid="stSidebar"] .block-container {
+    background: #ffffff !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 6px 22px rgba(15,23,42,0.06) !important;
+    padding: 18px !important;   /* small padding so alignment stays stable */
+}
+
+/* Modern sidebar headers */
+section[data-testid="stSidebar"] h1, 
+section[data-testid="stSidebar"] h2, 
+section[data-testid="stSidebar"] h3 {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 1.5rem !important;
+    margin-top: 2.5rem !important;
+    font-family: 'Space Grotesk', Inter, sans-serif !important;
+    letter-spacing: -0.02em !important;
+    position: relative !important;
+}
+section[data-testid="stSidebar"] h1::after, 
+section[data-testid="stSidebar"] h2::after, 
+section[data-testid="stSidebar"] h3::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: -10px !important;
+    left: 0 !important;
+    width: 50px !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, #FF6B6B, #FF8A80) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2) !important;
+}
+
+/* Input cards (top-level wrappers only) */
+section[data-testid="stSidebar"] .stSelectbox > div,
+section[data-testid="stSidebar"] .stNumberInput > div,
+section[data-testid="stSidebar"] .stMultiSelect > div,
+section[data-testid="stSidebar"] .stExpander > div,
+section[data-testid="stSidebar"] .stSlider > div,
+section[data-testid="stSidebar"] .stRadio > div,
+section[data-testid="stSidebar"] .stCheckbox > div {
+    background: #ffffff !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    border-radius: 16px !important;
+    padding: 20px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(255, 107, 107, 0.08) !important;
+    transition: box-shadow .2s ease, border-color .2s ease;
+}
+section[data-testid="stSidebar"] .stSelectbox > div:hover,
+section[data-testid="stSidebar"] .stNumberInput > div:hover,
+section[data-testid="stSidebar"] .stMultiSelect > div:hover {
+    box-shadow: 0 8px 26px rgba(0,0,0,.10), 0 4px 14px rgba(255,107,107,.15) !important;
+    border-color: rgba(255, 107, 107, 0.25) !important;
+}
+/* Focus ring (coral) without shifting layout */
+section[data-testid="stSidebar"] .stSelectbox > div:focus-within,
+section[data-testid="stSidebar"] .stNumberInput > div:focus-within,
+section[data-testid="stSidebar"] .stMultiSelect > div:focus-within,
+section[data-testid="stSidebar"] .stSlider > div:focus-within,
+section[data-testid="stSidebar"] .stRadio > div:focus-within,
+section[data-testid="stSidebar"] .stCheckbox > div:focus-within {
+    outline: 0 !important;
+    box-shadow: 0 0 0 3px rgba(255,107,107,0.12) !important;
+    border-color: rgba(255,107,107,0.35) !important;
+}
+
+/* Labels */
+section[data-testid="stSidebar"] label {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    margin-bottom: 1rem !important;
+    letter-spacing: 0.01em !important;
+    font-family: 'Space Grotesk', Inter, sans-serif !important;
+}
+
+/* Radio button styling */
+section[data-testid="stSidebar"] .stRadio > div {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(255, 107, 107, 0.1) !important;
+    border-radius: 18px !important;
+    padding: 20px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(255, 107, 107, 0.08) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 3px !important;
+    background: linear-gradient(90deg, #FF6B6B, #FF8A80) !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div:hover {
+    transform: translateY(-2px) !important;
+    border-color: rgba(255, 107, 107, 0.3) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(255, 107, 107, 0.15) !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div:hover::before {
+    opacity: 1 !important;
+}
+
+/* Individual radio button styling */
+section[data-testid="stSidebar"] [data-baseweb="radio"] {
+    padding: 16px 20px !important;
+    border-radius: 16px !important;
+    margin: 10px 0 !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 2px solid rgba(255, 107, 107, 0.1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"]:hover {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(255, 138, 128, 0.08)) !important;
+    transform: translateX(6px) !important;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.2) !important;
+    border-color: rgba(255, 107, 107, 0.3) !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"] {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    border-color: #FF6B6B !important;
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4), 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+    transform: translateX(4px) !important;
+    position: relative !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"]::before {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 3px 12px rgba(255, 255, 255, 0.6) !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"] span {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Add a checkmark for selected radio buttons */
+section[data-testid="stSidebar"] [data-baseweb="radio"][aria-checked="true"]::after {
+    content: "✓" !important;
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Enhanced radio group layout */
+section[data-testid="stSidebar"] .stRadio > div [role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 220px !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div [role="radio"] {
+    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%) !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 6px !important;
+    padding: 3px 6px !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+    text-align: center !important;
+    min-height: 18px !important;
+    min-width: 90px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 0.55rem !important;
+    line-height: 0.9 !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+}
+
+/* Force radio button text to stay on one line */
+section[data-testid="stSidebar"] .stRadio > div [role="radio"] * {
+    font-size: 0.55rem !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+    line-height: 0.9 !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div [role="radio"] label {
+    font-size: 0.55rem !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+    line-height: 0.9 !important;
+    max-width: none !important;
+    width: auto !important;
+}
+}
+
+section[data-testid="stSidebar"] .stRadio > div [role="radio"]:hover {
+    background: linear-gradient(135deg, #fff 0%, #fef7f7 100%) !important;
+    border-color: #FF6B6B !important;
+    box-shadow: 0 3px 8px rgba(255, 107, 107, 0.2) !important;
+    transform: translateY(-1px) !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div [role="radio"][aria-checked="true"] {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    border-color: #FF6B6B !important;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25) !important;
+    transform: translateY(-1px) !important;
+    position: relative !important;
+}
+
+section[data-testid="stSidebar"] .stRadio > div [role="radio"][aria-checked="true"]::after {
+    content: "✓" !important;
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Selected label styling */
+section[data-testid="stSidebar"] .stRadio > div [role="radio"][aria-checked="true"] * {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Checkbox */
+section[data-testid="stSidebar"] [data-baseweb="checkbox"] {
+    background: #fff !important;
+    border: 1px solid rgba(15,23,42,0.10) !important;
+    border-radius: 14px !important;
+    padding: 8px 12px !important;
+    transition: all 0.2s ease !important;
+}
+section[data-testid="stSidebar"] [data-baseweb="checkbox"][aria-checked="true"] > div {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    border-color: #FF6B6B !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+}
+
+/* Slider */
+section[data-testid="stSidebar"] [data-baseweb="slider"] [data-baseweb="track"] {
+    background: linear-gradient(90deg, #FF6B6B, #FF8A80) !important;
+    height: 8px !important;
+    border-radius: 6px !important;
+}
+section[data-testid="stSidebar"] [data-baseweb="slider"] [data-baseweb="thumb"] {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    border: 3px solid #ffffff !important;
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+}
+
+/* Number input buttons */
+section[data-testid="stSidebar"] .stNumberInput button {
+    background: #f7f8fa !important;
+    border: 1px solid rgba(15,23,42,0.12) !important;
+    border-radius: 10px !important;
+    color: #0f172a !important;
+    transition: all 0.2s ease !important;
+    font-weight: 600 !important;
+    padding: 10px 14px !important;
+    transform: translateY(-10px) !important;
+}
+section[data-testid="stSidebar"] .stNumberInput button:hover {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    color: #ffffff !important;
+    border-color: #FF6B6B !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+}
+
+/* Expander */
+section[data-testid="stSidebar"] .stExpander > div:first-child {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 16px !important;
+}
+section[data-testid="stSidebar"] .stExpander [data-testid="stExpanderToggleIcon"] {
+    color: #FF6B6B !important;
+}
+
+/* Popovers/menus */
+section[data-testid="stSidebar"] [data-baseweb="popover"],
+section[data-testid="stSidebar"] [data-baseweb="menu"],
+section[data-testid="stSidebar"] [data-baseweb="option"],
+section[data-testid="stSidebar"] [data-baseweb="listbox"] {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 107, 107, 0.2) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important;
+    color: #0f172a !important;
+}
+section[data-testid="stSidebar"] [data-baseweb="option"]:hover,
+section[data-testid="stSidebar"] [data-baseweb="option"][aria-selected="true"] {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.10), rgba(255, 138, 128, 0.10)) !important;
+    color: #0f172a !important;
+    border-left: 3px solid rgba(255,107,107,0.45) !important;
+}
+
+/* Style the sidebar toggle button */
+.stButton > button {
+    background: linear-gradient(135deg, #FF6B6B, #FF8A80) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 20px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4) !important;
+    background: linear-gradient(135deg, #FF8A80, #FF6B6B) !important;
+}
+
+/* Keep sidebar visible/sized */
+section[data-testid="stSidebar"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 350px !important;
+    transform: translateX(0) !important;
+    overflow-y: auto !important;
+}
+
+/* Sidebar container sizing */
+section[data-testid="stSidebar"] .block-container {
+    max-width: none !important;
+}
+
+
+
+
+</style>
+""", unsafe_allow_html=True)
+
 # Color palette & theme variables
-# ----------------------------
 COLORS = {
-    "primary": "#FF6B6B",      # Coral red
+    "primary": "#FF6B6B",      # Coral
     "secondary": "#4ECDC4",    # Teal
     "accent": "#45B7D1",       # Blue
     "success": "#95E1D3",      # Mint
@@ -37,22 +499,19 @@ COLORS = {
     "danger": "#FF8A80",       # Light red
 }
 
-base = (st.get_option("theme.base") or "light").lower()
-is_dark = base == "dark"
+# Light theme values
+TEXT = "#0f172a"
+MUTED = "#475569"
+BG = "#ffffff"
+PANEL = "#f8fafc"
+BORDER = "rgba(0,0,0,0.08)"
+GRID = "rgba(15,23,42,0.08)"
+HOVER_BG = "#ffffff"
+HOVER_FG = "#0f172a"
 
-TEXT = "#e5e7eb" if is_dark else "#0f172a"
-MUTED = "#9ca3af" if is_dark else "#475569"
-BG = "#0b1220" if is_dark else "#ffffff"
-PANEL = "#111827" if is_dark else "#f8fafc"
-BORDER = "rgba(255,255,255,0.14)" if is_dark else "rgba(0,0,0,0.08)"
-GRID = "rgba(255,255,255,0.1)" if is_dark else "rgba(15,23,42,0.08)"
-HOVER_BG = "#111827" if is_dark else "#ffffff"
-HOVER_FG = "#e5e7eb" if is_dark else "#0f172a"
-
-# Inject CSS variables so the rest of the CSS can be theme-aware
+# Theme-aware CSS
 st.markdown(f"""
 <style>
-/* Font imports */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
 
 :root {{
@@ -68,19 +527,16 @@ st.markdown(f"""
   --success-color: {COLORS["success"]};
   --warning-color: {COLORS["warning"]};
   --danger-color: {COLORS["danger"]};
+  --accent-coral: {COLORS["primary"]};
+  --accent-coral-weak: rgba(255,107,107,0.12);
 }}
 
-/* Hide default Streamlit chrome */
 #MainMenu, header, footer {{ visibility: hidden; }}
 
-/* Container spacing */
-.main .block-container {{ padding-top: 1.5rem; padding-bottom: 1.5rem; }}
-section[data-testid="stSidebar"] {{
-  background: linear-gradient(180deg, var(--panel-bg), rgba(255,255,255,0.02));
-  border-right: 1px solid var(--border-color);
+.main .block-container {{
+  padding-top: 1.5rem; padding-bottom: 1.5rem;
 }}
 
-/* Title styling */
 h1 {{
   font-family: 'Space Grotesk', Inter, sans-serif !important;
   font-weight: 700; letter-spacing: -0.02em;
@@ -89,91 +545,50 @@ h1 {{
   margin-bottom: 0.75rem;
 }}
 
- /* Tabs */
- .stTabs [data-baseweb="tab-list"] {{
-   gap: 10px; justify-content: center; align-items: center;
-   background: rgba(255,255,255,0.03);
-   padding: 8px; border-radius: 12px; border: 1px solid var(--border-color);
- }}
- .stTabs [data-baseweb="tab"] {{
-   padding: 10px 18px; border-radius: 10px; border: none; background: transparent;
-   color: var(--text-color) !important; font-weight: 600; transition: all 0.2s ease;
-   font-family: 'Space Grotesk', Inter, sans-serif;
- }}
- .stTabs [data-baseweb="tab"]:hover {{ 
-   background: rgba(255,107,107,0.08); 
-   color: var(--primary-color) !important;
- }}
- .stTabs [data-baseweb="tab"][aria-selected="true"] {{
-   background: var(--primary-color) !important; 
-   color: white !important;
-   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
-   transform: translateY(-1px);
- }}
- .stTabs [data-baseweb="tab"][aria-selected="true"] * {{
-   color: white !important;
- }}
- 
- /* Force tab text visibility with higher specificity */
- .stTabs [data-baseweb="tab"] span,
- .stTabs [data-baseweb="tab"] div,
- .stTabs [data-baseweb="tab"] p {{
-   color: var(--text-color) !important;
- }}
- 
- .stTabs [data-baseweb="tab"][aria-selected="true"] span,
- .stTabs [data-baseweb="tab"][aria-selected="true"] div,
- .stTabs [data-baseweb="tab"][aria-selected="true"] p {{
-   color: white !important;
- }}
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {{
+  gap: 10px; justify-content: center; align-items: center;
+  background: rgba(255,255,255,0.03);
+  padding: 8px; border-radius: 12px; border: 1px solid var(--border-color);
+}}
+  .stTabs [data-baseweb="tab"] {{
+  padding: 10px 18px; border-radius: 10px; border: none; background: transparent;
+  color: var(--text-color) !important; font-weight: 600; transition: all 0.2s ease;
+  font-family: 'Space Grotesk', Inter, sans-serif;
+}}
+.stTabs [data-baseweb="tab"]:hover {{
+  background: rgba(255,107,107,0.08);
+  color: var(--primary-color) !important;
+}}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {{
+  background: var(--primary-color) !important; 
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  transform: translateY(-1px);
+}}
+.stTabs [data-baseweb="tab"][aria-selected="true"] * {{ color: white !important; }}
 
-/* KPI cards */
-.kpi-card {{
+/* KPI card styles */
+  .kpi-card {{
   border: 1px solid var(--border-color); 
   border-radius: 16px; 
   padding: 20px 24px;
   background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.9));
   box-shadow: 0 6px 24px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
-  position: relative; 
-  overflow: hidden;
-  transition: all 0.3s ease;
+  position: relative; overflow: hidden; transition: all 0.3s ease;
 }}
 .kpi-card:hover {{
   transform: translateY(-2px);
   box-shadow: 0 10px 32px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
 }}
 .kpi-card::before {{ 
-  content: ""; 
-  position: absolute; 
-  top:0; 
-  left:0; 
-  right:0; 
-  height: 3px;
+  content: ""; position: absolute; top:0; left:0; right:0; height: 3px;
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
   border-radius: 16px 16px 0 0;
 }}
-.kpi-title {{ 
-  font-size: 0.75rem; 
-  color: var(--muted-color); 
-  margin-bottom: 6px; 
-  font-weight: 500; 
-  text-transform: uppercase; 
-  letter-spacing: 0.06em;
-  opacity: 0.7;
-}}
-.kpi-value {{ 
-  font-size: 2rem; 
-  font-weight: 700; 
-  letter-spacing: -0.02em; 
-  margin-bottom: 4px;
-  color: var(--text-color);
-}}
-.kpi-sub {{ 
-  font-size: 0.8rem; 
-  color: var(--muted-color);
-  opacity: 0.7;
-  font-weight: 400;
-}}
+.kpi-title {{ font-size: .75rem; color: var(--muted-color); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }}
+.kpi-value {{ font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; color: var(--text-color); }}
+.kpi-sub {{ font-size: .8rem; color: var(--muted-color); opacity: .7; font-weight: 400; }}
 
 /* Notice boxes */
 .notice, .warn {{
@@ -185,69 +600,43 @@ h1 {{
 
 /* Metric cards */
 .metric-card {{ 
-  border: 1px solid var(--border-color); 
-  border-radius: 18px; 
-  padding: 20px 24px; 
+  border: 1px solid var(--border-color); border-radius: 18px; padding: 20px 24px; 
   background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.9));
   box-shadow: 0 6px 24px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
-  margin-bottom: 20px; 
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  margin-bottom: 20px; position: relative; overflow: hidden; transition: all 0.3s ease;
 }}
-.metric-card:hover {{
-  transform: translateY(-2px);
-  box-shadow: 0 10px 32px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
-}}
-.metric-card::before {{ 
-  content: ""; 
-  position: absolute; 
-  top: 0; 
-  left: 0; 
-  right: 0; 
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-  border-radius: 18px 18px 0 0;
-}}
+.metric-card:hover {{ transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06); }}
+.metric-card::before {{ content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 18px 18px 0 0; }}
 .metric-header {{ display: flex; align-items: center; margin-bottom: 12px; }}
 .metric-icon {{ font-size: 28px; width: 40px; text-align: center; margin-right: 12px; color: var(--primary-color); }}
-.metric-name {{ 
-  font-weight: 600; 
-  font-size: 12px; 
-  color: var(--muted-color); 
-  letter-spacing: 0.06em; 
-  text-transform: uppercase;
-  opacity: 0.8;
-}}
-.metric-value {{ 
-  font-size: 28px; 
-  font-weight: 700; 
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}}
-.metric-implication {{ 
-  font-size: 13px; 
-  color: var(--muted-color); 
-  line-height: 1.5; 
-  font-style: italic;
-  opacity: 0.8;
-}}
-.status-excellent {{ color: #16a34a; }}
-.status-good {{ color: var(--primary-color); }}
-.status-warning {{ color: #d97706; }}
-.status-poor {{ color: #dc2626; }}
+.metric-name {{ font-weight: 600; font-size: 12px; color: var(--muted-color); letter-spacing: .06em; text-transform: uppercase; opacity: .8; }}
+.metric-value {{ font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }}
+.metric-implication {{ font-size: 13px; color: var(--muted-color); line-height: 1.5; font-style: italic; opacity: .8; }}
 
 /* Recommendation cards */
 .rec-card {{ padding: 18px; border-left: 6px solid; background: linear-gradient(135deg, var(--panel-bg), rgba(255,255,255,0.02)); border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }}
 .rec-card h4 {{ margin: 0 0 6px 0; font-weight: 700; font-size: 16px; }}
-.rec-card p {{ margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-color); opacity: 0.95; }}
+.rec-card p {{ margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-color); opacity: .95; }}
+
+/* Download button */
+.stDownloadButton > button {{
+  background-color: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  color: var(--text-color) !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+}}
+.stDownloadButton > button:hover {{
+  background-color: var(--accent-coral) !important; color: #ffffff !important; border-color: var(--accent-coral) !important;
+  }}
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
 # Plotly theme helper
 # ----------------------------
-
 def apply_chart_theme(fig: go.Figure) -> go.Figure:
     fig.update_layout(
         plot_bgcolor=PANEL,
@@ -263,34 +652,17 @@ def apply_chart_theme(fig: go.Figure) -> go.Figure:
     )
     return fig
 
-# ----------------------------
 # Data source configuration
-# ----------------------------
 DEFAULT_LOCAL = Path(__file__).resolve().parent / "final_dashboard_data.csv"
 DEFAULT_PARENT = Path(__file__).resolve().parent.parent / "data" / "final_dashboard_data.csv"
 
-st.sidebar.header("Data")
-if DEFAULT_LOCAL.exists():
-    source = st.sidebar.selectbox("Source", ["Local file", "Upload"], index=0)
-elif DEFAULT_PARENT.exists():
-    source = st.sidebar.selectbox("Source", ["Local file", "Upload"], index=0, help="Using ../data/final_dashboard_data.csv")
-else:
-    source = "Upload"
-    st.sidebar.info("Upload final_dashboard_data.csv to get started")
-
-uploaded = None
-if source == "Upload":
-    uploaded = st.sidebar.file_uploader("Upload final_dashboard_data.csv", type=["csv"])
-
+# Load data directly from local file
 @st.cache_data(ttl=3600)
-def _load_data_from_source(path_candidates, raw_bytes):
-    if raw_bytes is not None:
-        df = pd.read_csv(io.BytesIO(raw_bytes))
-    else:
-        path = next((p for p in path_candidates if p and Path(p).exists()), None)
-        if path is None:
-            raise ValueError("No data source provided. Upload a CSV or place final_dashboard_data.csv next to app.py or in ../data/.")
-        df = pd.read_csv(path)
+def _load_data_from_source():
+    path = next((p for p in [str(DEFAULT_LOCAL), str(DEFAULT_PARENT)] if p and Path(p).exists()), None)
+    if path is None:
+        raise ValueError("No data source found. Please ensure final_dashboard_data.csv is in the correct location.")
+    df = pd.read_csv(path)
 
     required = {
         "treatment", "booking", "age",
@@ -303,7 +675,6 @@ def _load_data_from_source(path_candidates, raw_bytes):
     if missing:
         raise ValueError(f"Dataset missing required columns: {sorted(missing)}")
 
-    # Types & helpers
     df["treatment"] = df["treatment"].astype(int)
     df["booking"] = df["booking"].astype(int)
 
@@ -316,59 +687,56 @@ def _load_data_from_source(path_candidates, raw_bytes):
     return df
 
 try:
-    df = _load_data_from_source(
-        [str(DEFAULT_LOCAL), str(DEFAULT_PARENT)] if source == "Local file" else [],
-        uploaded.getvalue() if uploaded is not None else None
-    )
+    df = _load_data_from_source()
 except Exception as e:
     st.error(str(e))
     st.stop()
 
-# ----------------------------
 # Sidebar controls & filters
-# ----------------------------
 st.sidebar.header("Controls")
 
-treatment_group = st.sidebar.radio("Treatment Group", ["All Groups", "Treatment Only", "Control Only"])  # filter
-use_clipped = st.sidebar.toggle("Use clipped uplift", value=True)
-uplift_col = "uplift_score_clipped" if use_clipped else "uplift_score"
+# Define uplift column
+uplift_col = "uplift_score"
+
+treatment_group = st.sidebar.radio("Treatment Group", ["All Groups", "Test Only", "Control Only"])
+
+
 
 booking_value = st.sidebar.number_input("Value per booking ($)", min_value=0, value=150, step=10)
-impact_scale = st.sidebar.number_input("Users scale for impact", min_value=10_000, value=100_000, step=10_000)
+impact_scale = st.sidebar.number_input("Users scale for impact (thousands)", min_value=10_000, value=100_000, step=10_000)
 
 with st.sidebar.expander("Filters", expanded=False):
-    if "activity_level" in df.columns:
-        act_opts = sorted(df["activity_level"].dropna().unique().tolist())
-        sel_act = st.multiselect("Activity level", act_opts, default=act_opts)
-    else:
-        sel_act = None
-
-    if "engagement_level" in df.columns:
-        eng_opts = sorted(df["engagement_level"].dropna().unique().tolist())
-        sel_eng = st.multiselect("Engagement level", eng_opts, default=eng_opts)
-    else:
-        sel_eng = None
-
     min_age, max_age = int(np.nanmin(df["age"])), int(np.nanmax(df["age"]))
-    age_rng = st.slider("Age", min_age, max_age, (min_age, max_age))
+    age_rng = st.slider("Age Range", min_age, max_age, (min_age, max_age))
+    
+    # Minimum uplift threshold for targeting
+    min_uplift = float(df[uplift_col].min())
+    max_uplift = float(df[uplift_col].max())
+    uplift_threshold = st.slider("Min Uplift Threshold (%)", 
+                                min_value=float(min_uplift * 100), 
+                                max_value=float(max_uplift * 100), 
+                                value=float(min_uplift * 100), 
+                                step=0.1, 
+                                help="Minimum predicted uplift to include in analysis")
 
 # Assignment filter
 df_view = df
-if treatment_group == "Treatment Only":
+if treatment_group == "Test Only":
     df_view = df_view[df_view["treatment"] == 1]
+    st.sidebar.write(f"Test Only selected: {len(df_view)} rows (treatment=1)")
 elif treatment_group == "Control Only":
     df_view = df_view[df_view["treatment"] == 0]
+    st.sidebar.write(f"Control Only selected: {len(df_view)} rows (treatment=0)")
+else:
+    st.sidebar.write(f"All Groups selected: {len(df_view)} rows")
 
 mask = (
-    df_view["age"].between(age_rng[0], age_rng[1])
-    & (df_view["activity_level"].isin(sel_act) if sel_act else True)
-    & (df_view["engagement_level"].isin(sel_eng) if sel_eng else True)
+    df_view["age"].between(age_rng[0], age_rng[1]) &
+    (df_view[uplift_col] >= uplift_threshold / 100)
 )
 df_f = df_view.loc[mask].copy()
 
-# ----------------------------
 # Utilities
-# ----------------------------
 def pct(x, d=1):
     try:
         return f"{x:.{d}%}"
@@ -410,15 +778,18 @@ def decile_calibration(frame: pd.DataFrame, dec_col="decile"):
     valid_frame = frame.dropna(subset=[dec_col])
     agg = (
         valid_frame.groupby([dec_col, "treatment"])["booking"]
-        .agg(["mean", "count"])  # mean booking rate + counts
+        .agg(["mean", "count"])
         .reset_index()
-        .pivot(index=dec_col, columns="treatment", values=["mean", "count"])  # columns (mean,0),(mean,1),(count,0),(count,1)
+        .pivot(index=dec_col, columns="treatment", values=["mean", "count"])
         .sort_index()
     )
-    tr = agg[("mean", 1)].fillna(0.0)
-    cr = agg[("mean", 0)].fillna(0.0)
-    n_tr = agg[("count", 1)].fillna(0)
-    n_cr = agg[("count", 0)].fillna(0)
+    
+    # Handle missing columns safely
+    tr = agg.get(("mean", 1), pd.Series(0.0, index=agg.index)).fillna(0.0)
+    cr = agg.get(("mean", 0), pd.Series(0.0, index=agg.index)).fillna(0.0)
+    n_tr = agg.get(("count", 1), pd.Series(0, index=agg.index)).fillna(0)
+    n_cr = agg.get(("count", 0), pd.Series(0, index=agg.index)).fillna(0)
+    
     lift = (tr - cr).fillna(0.0)
     return pd.DataFrame({
         "bucket": agg.index,
@@ -440,12 +811,9 @@ def build_gain_curve(frame: pd.DataFrame, score_col: str, step=0.1):
         y.append(tmp.iloc[:k]["incremental"].sum())
     return x, y
 
-# Small HTML helpers
-
 def notice(text, kind="good"):
     cls = "notice" if kind == "good" else "warn"
     st.markdown(f'<div class="{cls}">{text}</div>', unsafe_allow_html=True)
-
 
 def rec_card(title, body, color):
     st.markdown(f"""
@@ -464,20 +832,18 @@ st.markdown(
     "A randomized experiment on Airbnb booking data comparing a *new booking interface* (treatment) to the current (control), "
     "summarizing results, showing who benefits most, and outlining an ROI-first rollout."
 )
+
 st.markdown("Tabs: **(1)** experiment results, **(2)** uplift (who benefits), **(3)** targeting strategy, **(4)** validation, **(5)** summary & recommendations.")
 
-# Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Overview",
-    "Uplift Analysis",
+    "Uplift Analysis", 
     "Targeting Strategy",
     "Model & Experiment Validation",
     "Summary & Recommendations",
 ])
 
-# ---------------------------------
 # Tab 1: Overview
-# ---------------------------------
 with tab1:
     st.subheader("Overview")
     st.caption("Why: check if treatment beats control and by how much.")
@@ -485,7 +851,6 @@ with tab1:
     tr, cr = tc_rates(df_f)
     lift_val, z_stat, ci_lower, ci_upper = calculate_lift_stats(df_f)
 
-    # KPI cards
     lift_color = COLORS["primary"] if (lift_val or 0) >= 0 else COLORS["danger"]
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -497,20 +862,20 @@ with tab1:
     with c2:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">Treatment conversion</div>'
-            f'<div class="kpi-value">{pct(tr,2)}</div>'
+                    f'<div class="kpi-value">{pct(tr,2)}</div>'
             f'<div class="kpi-sub">New interface</div></div>', unsafe_allow_html=True
         )
     with c3:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">Control conversion</div>'
-            f'<div class="kpi-value">{pct(cr,2)}</div>'
+                    f'<div class="kpi-value">{pct(cr,2)}</div>'
             f'<div class="kpi-sub">Current interface</div></div>', unsafe_allow_html=True
         )
     with c4:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">Lift (treatment − control)</div>'
-            f'<div class="kpi-value" style="color:{lift_color}">{pct(lift_val,1)}</div>'
-            f'<div class="kpi-sub">95% CI {pct(ci_lower,1)} to {pct(ci_upper,1)} · z={z_stat:.2f}</div></div>',
+            f'<div class="kpi-value" style="color: #FF6B6B; font-weight: 800;">{pct(lift_val,1)}</div>'
+                    f'<div class="kpi-sub">95% CI {pct(ci_lower,1)} to {pct(ci_upper,1)} · z={z_stat:.2f}</div></div>',
             unsafe_allow_html=True
         )
 
@@ -530,7 +895,6 @@ with tab1:
             kind="good"
         )
 
-    # Comparison chart with CIs
     n_tr = (df_f["group_label"] == "Treatment").sum()
     n_cr = (df_f["group_label"] == "Control").sum()
     se_tr = np.sqrt(tr * (1 - tr) / max(n_tr, 1))
@@ -540,7 +904,7 @@ with tab1:
     fig.add_trace(go.Bar(
         x=["Current interface (Control)"], y=[cr],
         marker=dict(color=COLORS["secondary"], line=dict(width=0)),
-        error_y=dict(type="data", array=[1.96*se_cr], visible=True, color=COLORS["accent"], thickness=2),
+        error_y=dict(type="data", array=[1.96*se_cr], visible=True, color="#FF6B6B", thickness=2),
         text=[f'{cr:.2%}'], textposition='outside',
         hovertemplate="<b>%{x}</b><br>Conversion: %{y:.2%}<extra></extra>",
         showlegend=False
@@ -568,7 +932,6 @@ with tab1:
     )
     st.plotly_chart(apply_chart_theme(fig), use_container_width=True)
 
-    # Export filtered view
     st.download_button(
         label="Download current view (CSV)",
         data=df_f.to_csv(index=False).encode('utf-8'),
@@ -576,9 +939,7 @@ with tab1:
         mime="text/csv",
     )
 
-# ---------------------------------
-# Tab 2: Uplift analysis
-# ---------------------------------
+# Tab 2: Uplift Analysis
 with tab2:
     st.subheader("Uplift Analysis")
     st.caption("Why: find who benefits most from treatment.")
@@ -586,7 +947,6 @@ with tab2:
     mean_uplift = float(df_f[uplift_col].mean())
     st.caption(f"What this shows: distribution of predicted improvement; dashed line = average ({mean_uplift:.2%}).")
 
-    # Distribution
     dist = px.histogram(
         df_f, x=uplift_col, nbins=40, marginal="rug",
         color_discrete_sequence=[COLORS["primary"]],
@@ -596,7 +956,6 @@ with tab2:
     dist.update_layout(title=dict(text="Distribution of Individual Uplift Predictions", x=0.5), yaxis=dict(title="Users"), height=400)
     st.plotly_chart(apply_chart_theme(dist), use_container_width=True)
 
-    # KPIs
     pos_share = float((df_f[uplift_col] > 0).mean())
     hi_share = float((df_f[uplift_col] > np.percentile(df_f[uplift_col], 80)).mean())
     max_gain = float(df_f[uplift_col].max())
@@ -607,11 +966,24 @@ with tab2:
         ("Maximum predicted gain", pct(max_gain,1), "Largest expected single-user lift", c3),
     ]:
         with col:
-            # Color the most important KPI - Users who benefit
             if title == "Users who benefit":
                 st.markdown(
                     f'<div class="kpi-card"><div class="kpi-title">{title}</div>'
-                    f'<div class="kpi-value" style="color:{COLORS["primary"]}">{val}</div>'
+                    f'<div class="kpi-value" style="color: #0d9488; font-weight: 800;">{val}</div>'
+                    f'<div class="kpi-sub">{sub}</div></div>',
+                    unsafe_allow_html=True
+                )
+            elif title == "High-impact users":
+                st.markdown(
+                    f'<div class="kpi-card"><div class="kpi-title">{title}</div>'
+                    f'<div class="kpi-value">{val}</div>'
+                    f'<div class="kpi-sub">{sub}</div></div>',
+                    unsafe_allow_html=True
+                )
+            elif title == "Maximum predicted gain":
+                st.markdown(
+                    f'<div class="kpi-card"><div class="kpi-title">{title}</div>'
+                    f'<div class="kpi-value">{val}</div>'
                     f'<div class="kpi-sub">{sub}</div></div>',
                     unsafe_allow_html=True
                 )
@@ -623,7 +995,6 @@ with tab2:
                     unsafe_allow_html=True
                 )
 
-    # Calibration by decile
     st.subheader("Model Performance")
     st.caption("What this shows: higher predicted uplift should correspond to higher observed lift (bucketed).")
 
@@ -635,8 +1006,8 @@ with tab2:
         go.Scatter(
             x=calib["bucket"], y=calib["lift"],
             mode="lines+markers", name="Observed lift",
-            line=dict(color=COLORS["primary"], width=3, shape="spline", smoothing=0.5),
-            marker=dict(size=7, line=dict(width=0))
+            line=dict(color="#FF6B6B", width=3, shape="spline", smoothing=0.5),
+            marker=dict(size=7, line=dict(width=0), color="#FF6B6B")
         )
     )
     line.update_layout(
@@ -649,9 +1020,7 @@ with tab2:
     )
     st.plotly_chart(apply_chart_theme(line), use_container_width=True)
 
-# ---------------------------------
-# Tab 3: Targeting strategy
-# ---------------------------------
+# Tab 3: Targeting Strategy
 with tab3:
     st.subheader("Targeting Strategy")
     st.caption("Why: maximize ROI by treating users most likely to benefit first.")
@@ -671,22 +1040,21 @@ with tab3:
     with c1:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">Users targeted</div>'
-            f'<div class="kpi-value" style="color:{COLORS["primary"]}">{n_target:,}</div>'
+            f'<div class="kpi-value" style="color: #000000; font-weight: 800;">{n_target:,}</div>'
             f'<div class="kpi-sub">{pct_slider}% of current view</div></div>',
             unsafe_allow_html=True
         )
     with c2:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">Extra bookings</div>'
-            f'<div class="kpi-value">{inc_bookings:,.0f}</div>'
+            f'<div class="kpi-value" style="color: #000000; font-weight: 800;">{inc_bookings:,.0f}</div>'
             f'<div class="kpi-sub">Sum of predicted uplift in targeted cohort</div></div>',
             unsafe_allow_html=True
         )
     with c3:
-        tone = COLORS["primary"] if roi_boost >= 1 else COLORS["danger"]
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-title">ROI boost (per user)</div>'
-            f'<div class="kpi-value" style="color:{tone}">{pct(roi_boost - 1,1) if roi_boost>=0 else pct(roi_boost,1)}</div>'
+            f'<div class="kpi-value" style="color: #FF6B6B; font-weight: 800;">{pct(roi_boost - 1,1) if roi_boost>=0 else pct(roi_boost,1)}</div>'
             f'<div class="kpi-sub">Avg uplift/user vs full rollout</div></div>',
             unsafe_allow_html=True
         )
@@ -722,15 +1090,13 @@ with tab3:
     )
     st.plotly_chart(apply_chart_theme(qini), use_container_width=True)
 
-# ---------------------------------
-# Tab 4: Validation
-# ---------------------------------
+# Tab 4: Model & Experiment Validation
 with tab4:
     st.subheader("Model & Experiment Validation")
     st.caption("Why: confirm randomization worked and that model predictions are credible.")
 
     st.subheader("Balance & Randomization Diagnostics")
-
+    
     def calculate_smds(df, features):
         smds = []
         for feature in features:
@@ -744,19 +1110,19 @@ with tab4:
                         smd = mean_diff / pooled_std
                         smds.append({'feature': feature, 'smd': abs(smd)})
         return pd.DataFrame(smds)
-
+    
     baseline_features = ['age', 'total_actions', 'unique_actions', 'total_secs_elapsed', 'num_sessions', 'actions_per_session']
     available_features = [f for f in baseline_features if f in df_f.columns]
     smd_df = calculate_smds(df_f, available_features)
-
+    
     col_smd, col_prop = st.columns(2)
-
+    
     with col_smd:
         st.markdown("**Baseline Balance (SMDs)**")
         st.caption("Near zero = well-matched groups pre-experiment.")
         if not smd_df.empty:
             fig_smd = go.Figure()
-            colors = ["#16a34a" if s < 0.1 else "#d97706" if s < 0.2 else "#dc2626" for s in smd_df['smd']]
+            colors = ["#0d9488" if s < 0.1 else "#d97706" if s < 0.2 else "#dc2626" for s in smd_df['smd']]
             fig_smd.add_trace(go.Bar(
                 x=smd_df['smd'], y=smd_df['feature'],
                 orientation='h', marker=dict(color=colors, opacity=0.9),
@@ -783,7 +1149,7 @@ with tab4:
             st.caption(f"{(smd_df['smd'] < 0.1).sum()}/{len(smd_df)} features well-balanced (SMD < 0.1)")
         else:
             notice("SMDs require numeric baseline features", kind="warn")
-
+    
     with col_prop:
         st.markdown("**Randomization Quality (Propensity)**")
         st.caption("Peak near 0.5 suggests true random assignment.")
@@ -820,20 +1186,20 @@ with tab4:
             st.caption(f"Balance score: {balance_score:.3f} (mean ≈ 0.5 = perfect)")
         else:
             notice("Propensity scores not available", kind="warn")
-
+    
     st.markdown("---")
 
     st.subheader("Model & Experiment Validation")
-
+    
     model_accuracy = float(df_f['uplift_model_performance'].iloc[0]) if 'uplift_model_performance' in df_f.columns else 0.5
     variance_reduction = float(df_f['global_variance_reduction_pct'].iloc[0]) if 'global_variance_reduction_pct' in df_f.columns else 0.0
     uplift_range = float(df_f[uplift_col].max() - df_f[uplift_col].min())
-
+    
     randomization_balance = None
     if "propensity_score" in df_f.columns:
         ps_mean = float(df_f["propensity_score"].mean())
         randomization_balance = 1 - abs(ps_mean - 0.5) * 2
-
+    
     def status(metric_type, value):
         if metric_type == "cuped":
             return ("status-excellent" if value > 5 else "status-good" if value > 0 else "status-warning")
@@ -844,28 +1210,28 @@ with tab4:
         if metric_type == "randomization":
             v = value or 0
             return ("status-excellent" if v >= 0.99 else "status-good" if v >= 0.95 else "status-warning")
-        return "status-good"
-
+    
     def implication(metric_type, value):
         if metric_type == "cuped":
             if value > 5: return "Strong precision → High confidence in results"
             if value > 0: return "Good precision → Reliable statistical conclusions"
-            return "No variance reduction → Results may be noisy"
+            else:
+                return "No variance reduction → Results may be noisy"
         if metric_type == "model":
             if value > 0.55: return "Strong targeting ability → Proceed with personalized rollout"
             if value > 0.28: return "Moderate targeting → Selective personalization recommended"
-            return "Limited targeting → Focus on broad rollout strategy"
+            else: return "Limited targeting → Focus on broad rollout strategy"
         if metric_type == "range":
             if value > 0.2: return "High diversity → Model captures user heterogeneity well"
             if value > 0.1: return "Moderate diversity → Reasonable prediction spread"
-            return "Low diversity → Limited personalization potential"
+            else: return "Low diversity → Limited personalization potential"
         if metric_type == "randomization":
             v = value or 0
             if v >= 0.99: return "Strong balance → Unbiased experiment setup"
             if v >= 0.95: return "Good balance → Reliable causal attribution"
-            return "Review balance → Potential confounding factors"
-        return "Key metric for validation"
-
+            else: return "Review balance → Potential confounding factors"
+            return "Key metric for validation"
+    
     metrics_data = [
         ("Statistical Precision (CUPED)", f"{variance_reduction:.1f}%", "cuped", variance_reduction),
         ("Model Targeting Accuracy", f"{model_accuracy:.1%}", "model", model_accuracy),
@@ -878,32 +1244,63 @@ with tab4:
         stat = status(mtype, raw)
         expl = implication(mtype, raw)
         with (col1 if i==0 else col2 if i==1 else col3 if i==2 else col4):
-            st.markdown(f"""
-    <div class="metric-card">
-        <div class="metric-header">
-            <span class="metric-icon">⚙️</span>
-            <span class="metric-name">{name}</span>
-        </div>
-        <div class="metric-value {stat}">{value}</div>
-        <div class="metric-implication">{expl}</div>
-    </div>
-    """, unsafe_allow_html=True)
+            # Color important metrics with coral
+            if name == "Model Targeting Accuracy":
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-icon">⚙️</span>
+                        <span class="metric-name">{name}</span>
+                    </div>
+                    <div class="metric-value" style="color: #FF6B6B; font-weight: 800;">{value}</div>
+                    <div class="metric-implication">{expl}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            elif name == "Statistical Precision (CUPED)":
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-icon">⚙️</span>
+                        <span class="metric-name">{name}</span>
+                    </div>
+                    <div class="metric-value" style="color: #000000; font-weight: 800;">{value}</div>
+                    <div class="metric-implication">{expl}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            elif name == "Randomization Balance":
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-icon">⚙️</span>
+                        <span class="metric-name">{name}</span>
+                    </div>
+                    <div class="metric-value" style="color: #0d9488; font-weight: 800;">{value}</div>
+                    <div class="metric-implication">{expl}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-icon">⚙️</span>
+                        <span class="metric-name">{name}</span>
+                    </div>
+                    <div class="metric-value {stat}">{value}</div>
+                    <div class="metric-implication">{expl}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ---------------------------------
-# Tab 5: Recommendations + Reference
-# ---------------------------------
+# Tab 5: Summary & Recommendations
 with tab5:
     st.subheader("Summary & Recommendations")
-
+    
     effect_size = float(df_f["global_effect_size"].iloc[0])
     added_bookings = effect_size * impact_scale
     revenue_impact = added_bookings * booking_value
-
-    # Get additional stats for detailed takeaways
+    
     tr, cr = tc_rates(df_f)
     lift_val, z_stat, ci_lower, ci_upper = calculate_lift_stats(df_f)
 
-    # Calculate ROI boost for top 25%
     df_rank = df_f.sort_values(uplift_col, ascending=False)
     n_target_25 = int(len(df_f) * 0.25)
     inc_bookings_25 = float(df_rank.iloc[:n_target_25][uplift_col].sum())
@@ -911,28 +1308,39 @@ with tab5:
     avg_uplift_targeted = inc_bookings_25 / max(n_target_25, 1)
     avg_uplift_full = base_total_inc / max(len(df_f), 1)
     roi_boost = (avg_uplift_targeted / max(avg_uplift_full, 1e-9)) if avg_uplift_full != 0 else 0.0
-
-    st.markdown("**Key Takeaways:**")
+    
+    st.markdown("#### Key Takeaways")
+    
     st.markdown(f"""
-    - **{pct(effect_size,1)} conversion lift** with strong statistical significance (z-score: {z_stat:.2f})
-    - Uplift model successfully identifies high-impact users for targeted rollout strategy
-    - **ROI Impact**: At {impact_scale:,} users → **{added_bookings:,.0f} incremental bookings** ≈ **${revenue_impact:,.0f} annual revenue**
-    - **Targeting Efficiency**: Top 25% of users show {roi_boost:.1f}x higher ROI than broad rollout
-    - **Risk Management**: 95% confidence interval ({pct(ci_lower,1)} to {pct(ci_upper,1)}) supports positive effect
-    """)
-
+    <div style="
+        background: #f8f9fa;
+        padding: 0.8rem;
+        border-radius: 6px;
+        border-left: 3px solid #FF6B6B;
+        margin: 0.5rem 0;
+    ">
+        <ul style="margin: 0; padding-left: 1rem; line-height: 1.4; font-size: 1.05rem;">
+            <li><strong style="color: #FF6B6B;">{pct(effect_size,1)} conversion lift</strong> • z-score: {z_stat:.1f} • Highly statistically significant results</li>
+            <li><strong style="color: #0d9488;">Smart targeting works</strong> • Model successfully identifies high-impact users</li>
+            <li><strong style="color: #FF6B6B;">${revenue_impact:,.0f} annual revenue</strong> • {added_bookings:,.0f} incremental bookings • At {impact_scale:,} total users scale</li>
+            <li><strong style="color: #FF6B6B;">{roi_boost:.1f}x ROI boost</strong> • Top 25% users deliver better returns than broad rollout</li>
+            <li><strong style="color: #10b981;">Low risk</strong> • 95% CI ({pct(ci_lower,1)} to {pct(ci_upper,1)}) • All confidence intervals positive</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("---")
-
+    
     st.markdown("**Strategic Recommendations:**")
     col1, col2, col3, col4 = st.columns(4)
     with col1: rec_card("Rollout", "Start with top 25%; expand to 50% after validation, then full rollout.", COLORS["primary"])
     with col2: rec_card("Monitoring", "Track conversion, calibration, and revenue per user weekly.", COLORS["accent"])
     with col3: rec_card("Risk Mgmt", "Set conversion drop alerts, keep 10% holdout, recalibrate weekly.", COLORS["success"])
     with col4: rec_card("Iteration", "A/B test variants; retrain uplift model monthly.", COLORS["primary"])
-
+    
     st.markdown("---")
     st.subheader("Reference Materials")
-
+    
     with st.expander("Glossary"):
         colg1, colg2 = st.columns(2)
         with colg1:
