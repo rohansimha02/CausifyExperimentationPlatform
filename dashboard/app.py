@@ -538,11 +538,74 @@ st.markdown(f"""
 }}
 
 h1 {{
-  font-family: 'Space Grotesk', Inter, sans-serif !important;
+  font-family: 'Inter', sans-serif !important;
   font-weight: 700; letter-spacing: -0.02em;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   margin-bottom: 0.75rem;
+}}
+
+/* Professional Subheader Styling - Main Content Only */
+.main .block-container h2 {{
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 1.5rem !important;
+  color: #1e293b !important;
+  margin: 2rem 0 1rem 0 !important;
+  padding: 0.75rem 0 0.75rem 2rem !important;
+  position: relative !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.3 !important;
+}}
+
+.main .block-container h2::before {{
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+  background: linear-gradient(180deg, #FF6B6B 0%, #FF8A80 100%) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3) !important;
+}}
+
+.main .block-container h2::after {{
+  content: "" !important;
+  position: absolute !important;
+  left: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #FF6B6B !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.4) !important;
+}}
+
+/* Keep sidebar headers clean and simple */
+section[data-testid="stSidebar"] h2 {{
+  font-family: 'Space Grotesk', Inter, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 1.3rem !important;
+  color: #0f172a !important;
+  margin-bottom: 1.5rem !important;
+  margin-top: 2.5rem !important;
+  letter-spacing: -0.02em !important;
+  position: relative !important;
+  padding: 0 !important;
+}}
+
+section[data-testid="stSidebar"] h2::after {{
+  content: "" !important;
+  position: absolute !important;
+  bottom: -10px !important;
+  left: 0 !important;
+  width: 50px !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, #FF6B6B, #FF8A80) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2) !important;
 }}
 
 /* Tabs */
@@ -738,16 +801,19 @@ df_f = df_view.loc[mask].copy()
 
 # Utilities
 def pct(x, d=1):
+    """Format number as percentage with specified decimal places."""
     try:
         return f"{x:.{d}%}"
-    except Exception:
+    except (ValueError, TypeError):
         return "—"
 
 def tc_rates(frame: pd.DataFrame):
+    """Calculate treatment and control booking rates."""
     g = frame.groupby("group_label")["booking"].mean()
     return float(g.get("Treatment", np.nan)), float(g.get("Control", np.nan))
 
 def ci_includes_zero(lo, hi):
+    """Check if confidence interval includes zero."""
     return lo <= 0 <= hi
 
 def calculate_lift_stats(df_filtered):
@@ -765,6 +831,7 @@ def calculate_lift_stats(df_filtered):
     return lift, z_stat, ci_lower, ci_upper
 
 def compute_deciles(frame: pd.DataFrame, score_col: str, q=10):
+    """Compute deciles for a given score column."""
     valid_frame = frame.dropna(subset=[score_col])
     r = valid_frame[score_col].rank(method="first", pct=True)
     dec = np.ceil(r * q).clip(1, q).astype(int)
@@ -775,6 +842,7 @@ def compute_deciles(frame: pd.DataFrame, score_col: str, q=10):
     return result, q
 
 def decile_calibration(frame: pd.DataFrame, dec_col="decile"):
+    """Calculate calibration metrics for decile groups."""
     valid_frame = frame.dropna(subset=[dec_col])
     agg = (
         valid_frame.groupby([dec_col, "treatment"])["booking"]
@@ -801,6 +869,7 @@ def decile_calibration(frame: pd.DataFrame, dec_col="decile"):
     })
 
 def build_gain_curve(frame: pd.DataFrame, score_col: str, step=0.1):
+    """Build gain curve data for ROI analysis."""
     tmp = frame[["booking", "treatment", score_col]].dropna().sort_values(score_col, ascending=False).reset_index(drop=True)
     tmp["incremental"] = tmp[score_col]
     x, y = [], []
@@ -812,10 +881,12 @@ def build_gain_curve(frame: pd.DataFrame, score_col: str, step=0.1):
     return x, y
 
 def notice(text, kind="good"):
+    """Display a notice box with specified styling."""
     cls = "notice" if kind == "good" else "warn"
     st.markdown(f'<div class="{cls}">{text}</div>', unsafe_allow_html=True)
 
 def rec_card(title, body, color):
+    """Display a recommendation card with specified color."""
     st.markdown(f"""
     <div class="rec-card" style="border-left-color: {color};">
       <h4 style="color: {color};">{title}</h4>
