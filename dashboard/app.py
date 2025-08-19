@@ -1260,7 +1260,7 @@ with tab4:
     
     st.markdown("---")
 
-    st.subheader("Model & Experiment Validation")
+    st.subheader("Key Statistical Metrics")
     
     model_accuracy = float(df_f['uplift_model_performance'].iloc[0]) if 'uplift_model_performance' in df_f.columns else 0.5
     variance_reduction = float(df_f['global_variance_reduction_pct'].iloc[0]) if 'global_variance_reduction_pct' in df_f.columns else 0.0
