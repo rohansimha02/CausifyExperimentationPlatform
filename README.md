@@ -4,7 +4,7 @@ An end-to-end platform for product experimentation demonstrating causal inferenc
 
 The platform implements industry-standard experimental design principles including randomized controlled trials, variance reduction techniques, and heterogeneous treatment effect estimation. Built for data scientists and product managers who need to move beyond simple A/B testing to understand which users benefit most from new features.
 
-**Explore the live dashboard:** [https://causifyexperimentationplatform.onrender.com/)
+**Explore the live dashboard:** https://causifyexperimentationplatform.onrender.com/
 
 ## What You'll Find
 
